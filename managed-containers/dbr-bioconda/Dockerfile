@@ -22,8 +22,13 @@ RUN /databricks/conda/bin/conda config --system --set channel_priority strict \
 # Stage 3: Final
 FROM base AS final
 
+RUN useradd -m appuser
+USER appuser
+
 COPY --from=env-setup /databricks/conda /databricks/conda
 COPY --from=env-setup /etc/profile.d/conda.sh /etc/profile.d/conda.sh
 
 ENV DEFAULT_DATABRICKS_ROOT_CONDA_ENV=fsdh-bioconda
 ENV DATABRICKS_ROOT_CONDA_ENV=fsdh-bioconda
+
+HEALTHCHECK CMD curl --fail http://localhost:3000 || exit 1
