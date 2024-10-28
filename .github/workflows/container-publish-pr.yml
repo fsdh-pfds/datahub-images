@@ -81,7 +81,7 @@ jobs:
             base_name="ghcr.io/${{ github.repository_owner }}/$(basename "$dockerfile_dir")"
             
             # Convert the image name to lowercase
-            image_name="$(echo "$base_name" | tr '[:upper:]' '[:lower:]')"
+            image_name="${base_name,,}"
 
             # Build the Docker image
             docker build -t "$image_name:latest" "$dockerfile_dir"
