@@ -16,7 +16,6 @@ jobs:
       checks: read
       deployments: read
       issues: read
-      metadata: read
       statuses: read
 
     steps:
@@ -39,8 +38,8 @@ jobs:
         id: get_changed_files
         run: |
           # Get the list of changed files and save to a JSON file
-          changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
-          echo "{ "changed_files": [$(echo "$changed_files" | sed 's/^/"/;s/$/"/;s/\n/", "/g')] }" > changed_files.json
+          changed_files="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
+          echo "{ \"changed_files\": [$(echo "$changed_files" | sed 's/^/"/;s/$/"/;s/ /", "/g')] }" > changed_files.json
 
       - name: Find Dockerfiles to build
         id: find_dockerfiles
@@ -52,9 +51,9 @@ jobs:
           dockerfile_dirs=()
 
           # Iterate over changed files and find corresponding Dockerfiles
-          for file in $changed_files; do
+          for file in "$changed_files"; do
             if [[ $file == *Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname $file))
+              dockerfile_dirs+=("$(dirname "$file")")
             elif [[ $file == managed-containers/* ]] && [[ -f $(dirname $file)/Dockerfile ]]; then
               dockerfile_dirs+=($(dirname $file))
             fi
@@ -64,7 +63,7 @@ jobs:
           dockerfile_dirs=($(echo "${dockerfile_dirs[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 
           # Save Dockerfile directories to a JSON file
-          echo "{ "dockerfile_dirs": [$(echo "${dockerfile_dirs[@]}" | sed 's/ /", "/g')] }" > dockerfile_dirs.json
+          echo "{ \"dockerfile_dirs\": [$(echo "${dockerfile_dirs[@]}" | sed 's/ /", "/g')] }" > dockerfile_dirs.json
 
       - name: Build and push Docker images
         id: build_and_push
@@ -73,7 +72,7 @@ jobs:
           dockerfile_dirs=$(cat dockerfile_dirs.json | jq -r '.dockerfile_dirs[]')
 
           # Iterate over each Dockerfile directory and build/push the image
-          for dockerfile_dir in $dockerfile_dirs; do
+          for dockerfile_dir in "$dockerfile_dirs"; do
             # Generate a unique image name based on the directory name
             base_name="ghcr.io/${{ github.repository_owner }}/$(basename $dockerfile_dir)"
             
