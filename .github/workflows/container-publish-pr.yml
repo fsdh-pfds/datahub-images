@@ -22,7 +22,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history to get commit information
+          fetch-depth: 0 # Fetch full history to get commit information
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -123,6 +123,6 @@ jobs:
       - name: Auto-merge Pull Request
         if: steps.create-pr.outputs.pull-request-operation == 'created'
         run: |
-          gh pr merge update-image-info-${{ github.run_id }} --squash --auto --delete-branch 
+          gh pr merge update-image-info-${{ github.run_id }} --squash --auto --delete-branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
