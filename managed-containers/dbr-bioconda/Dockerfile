@@ -1,7 +1,7 @@
 # Stage 1: Base
 FROM databricksruntime/python:12.2-LTS AS base
 
-RUN apt-get update && apt-get install -y wget bzip2 libdigest-sha-perl
+RUN apt-get update && apt-get install -y wget=1.20.3-1ubuntu1 bzip2=1.0.8-2 libdigest-sha-perl=6.02-1build2 && rm -rf /var/lib/apt/lists/*
 
 # Conda must be installed at /databricks/conda
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-py38_23.3.1-0-Linux-x86_64.sh -O miniconda.sh \
