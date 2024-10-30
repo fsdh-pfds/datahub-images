@@ -24,105 +24,13 @@ jobs:
         with:
           fetch-depth: 0 # Fetch full history to get commit information
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Get list of changed files
         id: get_changed_files
         run: |
           # Get the list of changed files and convert to JSON format
-          changed_files="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
-          changed_files_json="{ \"changed_files\": [$(echo "$changed_files" | sed 's/^/"/;s/$/"/;s/ /", "/g')] }"
+          changed_files="$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})"
+          
+          changed_files_json="$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')""
+
           echo "$changed_files_json"
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
-
-      - name: Find Dockerfiles to build
-        id: find_dockerfiles
-        run: |
-          # Read changed files from GitHub output
-          changed_files=$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.changed_files[]')
-
-          # Initialize an empty array to store Dockerfile directories
-          dockerfile_dirs=()
-
-          # Iterate over changed files and find corresponding Dockerfiles
-          for file in $changed_files; do
-            if [[ $file == *Dockerfile ]]; then
-              dockerfile_dirs+=("$(dirname "$file")")
-            elif [[ $file == managed-containers/* ]] && [[ -f $(dirname "$file")/Dockerfile ]]; then
-              dockerfile_dirs+=("$(dirname "$file")")
-            fi
-          done
-
-          # Remove duplicates
-          dockerfile_dirs=($(echo "${dockerfile_dirs[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-
-          # Convert Dockerfile directories to JSON and set as output
-          dockerfile_dirs_json="{ \"dockerfile_dirs\": [$(echo "${dockerfile_dirs[@]}" | sed 's/ /", "/g')] }"
-          echo "$dockerfile_dirs_json"
-          echo "dockerfile_dirs_json=$dockerfile_dirs_json" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker images
-        id: build_and_push
-        run: |
-          # Read Dockerfile directories from GitHub output
-          dockerfile_dirs=$(echo "${{ steps.find_dockerfiles.outputs.dockerfile_dirs_json }}" | jq -r '.dockerfile_dirs[]')
-
-          # Iterate over each Dockerfile directory and build/push the image
-          for dockerfile_dir in $dockerfile_dirs; do
-            # Generate a unique image name based on the directory name
-            base_name="ghcr.io/${{ github.repository_owner }}/$(basename "$dockerfile_dir")"
-            
-            # Convert the image name to lowercase
-            image_name="${base_name,,}"
-
-            # Build the Docker image
-            docker build -t "$image_name:latest" "$dockerfile_dir"
-
-            # Push the Docker image with the 'latest' tag to GitHub Container Registry
-            docker push "$image_name:latest"
-
-            # Get the image digest
-            digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image_name:latest")
-
-            # Get the current date
-            date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-            # URL of the container image
-            image_url="https://ghcr.io/${{ github.repository_owner }}/$(basename $dockerfile_dir):latest"
-
-            # Generate YAML file
-            echo "---
-            image:
-              name: $image_name
-              digest: $digest
-              date: $date
-              url: $image_url" > "$dockerfile_dir/image-info.yaml"
-
-            # Clean up dangling images to free up space
-            docker image prune -f
-          done
-
-      - name: Create Pull Request
-        id: create-pr
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: update-image-info-${{ github.run_id }}
-          delete-branch: true
-          title: Changes by create-pull-request action
-          body: Automated Docker Image Maintenace via GitHub action
-          draft: false
-
-      - name: Auto-merge Pull Request
-        if: steps.create-pr.outputs.pull-request-operation == 'created'
-        run: |
-          gh pr merge update-image-info-${{ github.run_id }} --squash --auto --delete-branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
