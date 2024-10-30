@@ -35,12 +35,16 @@ jobs:
           echo "$changed_files_json"
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
 
+
+
       - name: Generate list of Dockerfiles to build
         id: generate_dockerfile_list
         run: |
           # Convert JSON array of changed files back to bash array
           changed_files=$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.[]')
           
+          echo "$changed_files"
+
           dockerfile_dirs=()
           while IFS= read -r file; do
             if [[ $file == *Dockerfile ]]; then
