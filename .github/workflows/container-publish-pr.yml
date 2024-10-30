@@ -38,27 +38,27 @@ jobs:
           # Convert JSON array of changed files back to bash array
           changed_files=$(echo '${{ steps.get_changed_files.outputs.changed_files_json }}' | jq -r '.[]')
 
-
-          dockerfile_dirs=()
+          dockerfiles_to_build=()
           while IFS= read -r file; do
-            # Check if the changed file is a Dockerfile or if its directory contains a Dockerfile
+            # Check if the changed file is a Dockerfile
             if [[ $file == *Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname "$file"))
+              dockerfiles_to_build+=($file)
+            # Check if the directory of the changed file contains a Dockerfile
             elif [[ -f $(dirname "$file")/Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname "$file"))
+              dockerfiles_to_build+=($(dirname "$file")/Dockerfile)
             fi
 
-            # Check if the file is in manage-containers and add the top-level directory if it contains a Dockerfile
+            # Check if the file is in manage-containers and add the top-level Dockerfile if it exists
             if [[ $file == manage-containers/*/* ]]; then
               top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
               if [[ -f "$top_level_dir/Dockerfile" ]]; then
-                dockerfile_dirs+=($top_level_dir)
+                dockerfiles_to_build+=($top_level_dir/Dockerfile)
               fi
             fi
           done <<< "$changed_files"
 
-          # Remove duplicates from dockerfile_dirs
-          unique_dockerfile_dirs=($(echo "${dockerfile_dirs[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+          # Remove duplicates from dockerfiles_to_build
+          unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
           
-          echo "Dockerfile directories to build: ${unique_dockerfile_dirs[@]}"
-          echo "dockerfile_dirs=${unique_dockerfile_dirs[@]}" >> $GITHUB_OUTPUT
+          echo "Dockerfiles to build: ${unique_dockerfiles_to_build[@]}"
+          echo "dockerfile_dirs=${unique_dockerfiles_to_build[@]}" >> $GITHUB_OUTPUT
