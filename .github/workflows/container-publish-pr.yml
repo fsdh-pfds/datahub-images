@@ -48,7 +48,6 @@ jobs:
         run: |
           # Convert JSON array of changed files back to bash array
           changed_files='$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.[]')'
-        
 
           dockerfile_dirs=()
           while IFS= read -r file; do
