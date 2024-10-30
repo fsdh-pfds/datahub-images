@@ -77,7 +77,7 @@ jobs:
       
           # Convert to JSON for output
 
-          unique_dockerfiles_to_build_json=$(echo "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          unique_dockerfiles_to_build_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'map(select(length > 0))')
           echo "Changed files to process:"
           echo "$unique_dockerfiles_to_build_json"
 
