@@ -98,7 +98,6 @@ jobs:
       
       - name: Build, Scan, and Push Docker Images
         run: |
-
           # Convert JSON array of changed files back to a newline-separated list
           dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
           dockerfiles_files_list=$(echo "$dockerfiles_json" | jq -r '.[]')
@@ -111,25 +110,24 @@ jobs:
             # Extract the package name and convert to lowercase
             package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
 
-            # Define image name
-            #image_name="ghcr.io/${{ github.repository }}/$package_name:${{ github.sha }}"
+            # Define image name with :latest tag
+            image_name="$package_name:latest"
 
-            echo "Building Docker image: $package_name from $dockerfile"
+            echo "Building Docker image: $image_name from $dockerfile"
 
             # Build Docker image
-            docker buildx build -t "$package_name" -f "$dockerfile" "$(dirname "$dockerfile")"
+            docker buildx build --load -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
 
-            echo "Scanning Docker image: $package_name with Trivy"
+            echo "Scanning Docker image: $image_name with Trivy"
 
-            # Scan Docker image with Trivy
-            trivy image --exit-code 1 --severity HIGH,CRITICAL "$package_name:latest"
+            # Scan Docker image with Trivy using Docker Daemon mode
+            trivy image --exit-code 1 --severity HIGH,CRITICAL --input "$image_name"
             if [ $? -eq 0 ]; then
               echo "No high or critical vulnerabilities found. Pushing image: $image_name"
 
               # Push the Docker image
-              docker buildx build --push -t "$image_name" -f "$dockerfile" .
+              docker buildx build --push -t "ghcr.io/${{ github.repository }}/$package_name:${{ github.sha }}" -f "$dockerfile" .
             else
               echo "Skipping push for $image_name due to detected vulnerabilities."
             fi
           done <<< "$dockerfiles_files_list"
-          
