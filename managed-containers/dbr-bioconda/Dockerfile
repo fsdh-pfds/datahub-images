@@ -11,7 +11,7 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-py38_23.3.1-0-Linux-x
 # Stage 2: Environment Setup
 FROM base AS env-setup
 
-COPY ./env.yml /databricks/.conda-env-def/env.yml
+COPY env.yml /databricks/.conda-env-def/env.yml
 
 RUN /databricks/conda/bin/conda env create --file /databricks/.conda-env-def/env.yml \
     && ln -s /databricks/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh

@@ -103,7 +103,7 @@ jobs:
           dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
           dockerfiles_files_list=$(echo "$dockerfiles_json" | jq -r '.[]')
 
-          echo "Changed files to process:"
+          echo "Dockerfile files to process:"
           echo "$dockerfiles_files_list"
 
           # Iterate through each Dockerfile path
@@ -117,7 +117,7 @@ jobs:
             echo "Building Docker image: $image_name from $dockerfile"
 
             # Build Docker image
-            docker buildx build -t "$image_name" -f "$dockerfile" .
+            docker buildx build -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
 
             echo "Scanning Docker image: $image_name with Trivy"
 
