@@ -99,24 +99,36 @@ jobs:
       - name: Build, Scan, and Push Docker Images
         run: |
 
-          # Convert JSON array of changed files back to bash array       
-          dockerfiles_json=$(echo '${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}')
+          # Convert JSON array of changed files back to a newline-separated list
+          dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
           dockerfiles_files_list=$(echo "$dockerfiles_json" | jq -r '.[]')
+
           echo "Changed files to process:"
           echo "$dockerfiles_files_list"
 
+          # Iterate through each Dockerfile path
+          while IFS= read -r dockerfile; do
+            # Extract the package name and convert to lowercase
+            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
 
-          for dockerfile in ${dockerfiles_files_list[@]}; do
-            image_name="ghcr.io/${{ github.repository }}/$(basename "$dockerfile"):${{ github.sha }}"
+            # Define image name
+            image_name="ghcr.io/${{ github.repository }}/$package_name:${{ github.sha }}"
+
+            echo "Building Docker image: $image_name from $dockerfile"
+
             # Build Docker image
-            docker buildx build -t "$image_name" "$dockerfile"
+            docker buildx build -t "$image_name" -f "$dockerfile" .
+
+            echo "Scanning Docker image: $image_name with Trivy"
 
             # Scan Docker image with Trivy
             trivy image --exit-code 1 --severity HIGH,CRITICAL "$image_name"
             if [ $? -eq 0 ]; then
-              # No high or critical vulnerabilities, push the image
-              docker buildx build --push -t "$image_name" "$dockerfile"
+              echo "No high or critical vulnerabilities found. Pushing image: $image_name"
+
+              # Push the Docker image
+              docker buildx build --push -t "$image_name" -f "$dockerfile" .
             else
               echo "Skipping push for $image_name due to detected vulnerabilities."
             fi
-          done
+          done <<< "$dockerfiles_files_list"
