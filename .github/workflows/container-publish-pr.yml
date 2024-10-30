@@ -29,7 +29,10 @@ jobs:
         run: |
           # Get the list of changed files and convert to JSON format
           changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
-          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')
+          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          
+          echo "Changed files: $changed_files"
+         
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
 
       - name: Generate list of Dockerfiles to build
@@ -84,8 +87,8 @@ jobs:
       - name: Build, Scan, and Push Docker Images
         if: steps.generate_dockerfile_list.outputs.dockerfile_dirs != ''
         run: |
-          dockerfiles=(${DOCKERFILE_DIRS})
-          for dockerfile in "${dockerfiles[@]}"; do
+          dockerfiles=$(echo '${{ steps.generate_dockerfile_list.outputs.dockerfile_dirs }}' | jq -r '.[]')
+          for dockerfile in ${dockerfiles[@]}; do
             image_name="ghcr.io/${{ github.repository }}/$(basename "$dockerfile"):${{ github.sha }}"
             # Build Docker image
             docker buildx build -t "$image_name" "$dockerfile"
