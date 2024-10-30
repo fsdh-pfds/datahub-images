@@ -29,33 +29,15 @@ jobs:
         run: |
           # Get the list of changed files and convert to JSON format
           changed_files="$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})"
-          
+      
           changed_files_json="$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')"
-
+        
           echo "$changed_files_json"
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
 
-
-
-      - name: Generate list of Dockerfiles to build
-        id: generate_dockerfile_list
+      # Step 2: List all changed files
+      - name: List all changed files
         run: |
-          # Convert JSON array of changed files back to bash array
-          changed_files=$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.[]')
-          
-          echo "$changed_files"
-
-          dockerfile_dirs=()
-          while IFS= read -r file; do
-            if [[ $file == *Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname "$file"))
-            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname "$file"))
-            fi
-          done <<< "$changed_files"
-
-          # Remove duplicates from dockerfile_dirs
-          unique_dockerfile_dirs=($(echo "${dockerfile_dirs[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-          
-          echo "Dockerfile directories to build: ${unique_dockerfile_dirs[@]}"
-          echo "dockerfile_dirs=${unique_dockerfile_dirs[@]}" >> $GITHUB_OUTPUT
+          FILES_JSON='${{ steps.get_changed_files.outputs.changed_files_json }}'
+          echo "Changed files:"
+          echo "$FILES_JSON" | jq -r '.[]'
