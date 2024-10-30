@@ -29,7 +29,6 @@ jobs:
         run: |
           # Get the list of changed files and convert to JSON format
           changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
-          #changed_files_json=$(echo "$changed_files" | jq -Rs '[split("\n")[] | select(. != "")]')
           changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
 
           echo "Changed files: $changed_files_json"
@@ -41,4 +40,9 @@ jobs:
         id: generate_dockerfile_list
         run: |
           # Convert JSON array of changed files back to bash array       
-          changed_files_list=${{ fromJson(steps.get_changed_files.outputs.changed_files_json) }}
+          changed_files_json='${{ steps.get_changed_files.outputs.changed_files }}'
+
+          changed_files_list=$(echo "$changed_files_json" | jq -r '.[]')
+
+          echo "Changed files to process:"
+          echo "$changed_files_list"
