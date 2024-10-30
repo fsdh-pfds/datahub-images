@@ -98,7 +98,7 @@ jobs:
         run: |
 
           # Convert JSON array of changed files back to bash array       
-          dockerfiles_json=$(echo '${{ steps.generate_dockerfile_list.outputs.dockerfile_dirs }}'
+          dockerfiles_json=$(echo '${{ steps.generate_dockerfile_list.outputs.dockerfile_dirs }}')
           dockerfiles_files_list=$(echo "$dockerfiles_json" | jq -r '.[]')
 
           for dockerfile in ${dockerfiles[@]}; do
