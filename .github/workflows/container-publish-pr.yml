@@ -106,7 +106,7 @@ jobs:
           echo "$dockerfiles_files_list"
 
 
-          for dockerfile in ${dockerfiles[@]}; do
+          for dockerfile in ${dockerfiles_files_list[@]}; do
             image_name="ghcr.io/${{ github.repository }}/$(basename "$dockerfile"):${{ github.sha }}"
             # Build Docker image
             docker buildx build -t "$image_name" "$dockerfile"
