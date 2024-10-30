@@ -28,33 +28,34 @@ jobs:
         id: get_changed_files
         run: |
           # Get the list of changed files and convert to JSON format
-          changed_files="$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})"
-      
-          changed_files_json="$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')"
-        
-          echo "$changed_files_json"
+          changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
+          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
-
-      # Step 2: List all changed files
-      #- name: List all changed files
-      #  run: |
-      #    FILES_JSON='${{ steps.get_changed_files.outputs.changed_files_json }}'
-      #    echo "Changed files:"
-      #    echo "$FILES_JSON" | jq -r '.[]'
 
 
       - name: Generate list of Dockerfiles to build
         id: generate_dockerfile_list
         run: |
           # Convert JSON array of changed files back to bash array
+          #changed_files=$(echo '${{ steps.get_changed_files.outputs.changed_files_json }}' | jq -r '.[]')
           changed_files='$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.[]')'
+
 
           dockerfile_dirs=()
           while IFS= read -r file; do
+            # Check if the changed file is a Dockerfile or if its directory contains a Dockerfile
             if [[ $file == *Dockerfile ]]; then
               dockerfile_dirs+=($(dirname "$file"))
             elif [[ -f $(dirname "$file")/Dockerfile ]]; then
               dockerfile_dirs+=($(dirname "$file"))
+            fi
+
+            # Check if the file is in manage-containers and add the top-level directory if it contains a Dockerfile
+            if [[ $file == manage-containers/*/* ]]; then
+              top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
+              if [[ -f "$top_level_dir/Dockerfile" ]]; then
+                dockerfile_dirs+=($top_level_dir)
+              fi
             fi
           done <<< "$changed_files"
 
