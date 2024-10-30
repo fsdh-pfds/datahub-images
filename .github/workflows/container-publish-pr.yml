@@ -42,13 +42,13 @@ jobs:
           changed_files=$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.[]')
           
           dockerfile_dirs=()
-          for file in $changed_files; do
+          while IFS= read -r file; do
             if [[ $file == *Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname $file))
-            elif [[ -f $(dirname $file)/Dockerfile ]]; then
-              dockerfile_dirs+=($(dirname $file))
+              dockerfile_dirs+=($(dirname "$file"))
+            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
+              dockerfile_dirs+=($(dirname "$file"))
             fi
-          done
+          done <<< "$changed_files"
 
           # Remove duplicates from dockerfile_dirs
           unique_dockerfile_dirs=($(echo "${dockerfile_dirs[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
