@@ -94,7 +94,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build, Scan, and Push Docker Images
-        if: steps.generate_dockerfile_list.outputs.dockerfile_dirs != ''
         run: |
 
           # Convert JSON array of changed files back to bash array       
