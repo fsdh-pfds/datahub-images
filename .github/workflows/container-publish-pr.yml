@@ -100,6 +100,9 @@ jobs:
           # Convert JSON array of changed files back to bash array       
           dockerfiles_json=$(echo '${{ steps.generate_dockerfile_list.outputs.dockerfile_dirs }}')
           dockerfiles_files_list=$(echo "$dockerfiles_json" | jq -r '.[]')
+          echo "Changed files to process:"
+          echo "$dockerfiles_files_list"
+
 
           for dockerfile in ${dockerfiles[@]}; do
             image_name="ghcr.io/${{ github.repository }}/$(basename "$dockerfile"):${{ github.sha }}"
