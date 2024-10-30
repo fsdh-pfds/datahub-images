@@ -30,7 +30,7 @@ jobs:
           # Get the list of changed files and convert to JSON format
           changed_files="$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})"
           
-          changed_files_json="$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')""
+          changed_files_json="$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1]')"
 
           echo "$changed_files_json"
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
