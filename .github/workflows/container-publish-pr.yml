@@ -29,86 +29,15 @@ jobs:
         run: |
           # Get the list of changed files and convert to JSON format
           changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
-          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          changed_files_json=$(echo "$changed_files" | jq -Rs '[split("\n")[] | select(. != "")]')
           
           echo "Changed files: $changed_files"
-         
-          echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
+
+          # Set the JSON string as an output
+          echo "changed_files=$changed_files_json" >> $GITHUB_OUTPUT
 
       - name: Generate list of Dockerfiles to build
         id: generate_dockerfile_list
         run: |
-          # Convert JSON array of changed files back to bash array
-          changed_files=$(echo '${{ steps.get_changed_files.outputs.changed_files_json }}' | jq -r '.[]')
-      
-          dockerfiles_to_build=()
-          while IFS= read -r file; do
-            # Check if the changed file is a Dockerfile
-            if [[ $file == *Dockerfile ]]; then
-              dockerfiles_to_build+=("$file")
-            # Check if the directory of the changed file contains a Dockerfile
-            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
-              dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
-            fi
-      
-            # Check if the file is in manage-containers and add the top-level Dockerfile if it exists
-            if [[ $file == manage-containers/*/* ]]; then
-              top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
-              if [[ -f "$top_level_dir/Dockerfile" ]]; then
-                dockerfiles_to_build+=("$top_level_dir/Dockerfile")
-              fi
-            fi
-          done <<< "$changed_files"
-      
-          # Remove duplicates from dockerfiles_to_build
-          unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-      
-          if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
-            echo "No Dockerfiles found to build. Exiting..."
-            exit 0
-          fi
-      
-          # Convert unique_dockerfiles_to_build to a JSON array using jq and echo
-          json_array=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | @json')
-          
-          # Echo out the Dockerfiles to be built
-          echo "Dockerfiles to build: $json_array"
-      
-          # Output the JSON array
-          echo "dockerfile_dirs=$json_array" >> $GITHUB_OUTPUT
-
-      
-
-      - name: Set up Docker Build Environment
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Trivy
-        uses: aquasecurity/setup-trivy@v0.2.2
-
-      - name: Build, Scan, and Push Docker Images
-        if: steps.generate_dockerfile_list.outputs.dockerfile_dirs != ''
-        run: |
-          dockerfiles=$(echo "${{ steps.generate_dockerfile_list.outputs.dockerfile_dirs }}" | jq -r '.[]')
-
-          
-          for dockerfile in ${dockerfiles[@]}; do
-            image_name="ghcr.io/${{ github.repository }}/$(basename "$dockerfile"):${{ github.sha }}"
-            # Build Docker image
-            docker buildx build -t "$image_name" "$dockerfile"
-
-            # Scan Docker image with Trivy
-            trivy image --exit-code 1 --severity HIGH,CRITICAL "$image_name"
-            if [ $? -eq 0 ]; then
-              # No high or critical vulnerabilities, push the image
-              docker buildx build --push -t "$image_name" "$dockerfile"
-            else
-              echo "Skipping push for $image_name due to detected vulnerabilities."
-            fi
-          done
+          # Convert JSON array of changed files back to bash array       
+          changed_files_list=${{ fromJson(steps.get_changed_files.outputs.changed_files_json) }}
