@@ -132,3 +132,4 @@ jobs:
               echo "Skipping push for $image_name due to detected vulnerabilities."
             fi
           done <<< "$dockerfiles_files_list"
+          
