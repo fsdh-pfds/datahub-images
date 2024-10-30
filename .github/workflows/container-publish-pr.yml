@@ -65,10 +65,8 @@ jobs:
             exit 0
           fi
 
-          # Convert bash array to JSON array for output
-          dockerfile_dirs_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R . | jq -s .)
           echo "Dockerfiles to build: ${unique_dockerfiles_to_build[@]}"
-          echo "dockerfile_dirs=$dockerfile_dirs_json" >> $GITHUB_OUTPUT
+          echo "dockerfile_dirs=${unique_dockerfiles_to_build[@]}" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Build Environment
         uses: docker/setup-buildx-action@v3
@@ -86,8 +84,8 @@ jobs:
       - name: Build, Scan, and Push Docker Images
         if: steps.generate_dockerfile_list.outputs.dockerfile_dirs != ''
         run: |
-          dockerfiles=$(echo '${{ steps.generate_dockerfile_list.outputs.dockerfile_dirs }}' | jq -r '.[]')
-          for dockerfile in ${dockerfiles[@]}; do
+          dockerfiles=(${DOCKERFILE_DIRS})
+          for dockerfile in "${dockerfiles[@]}"; do
             image_name="ghcr.io/${{ github.repository }}/$(basename "$dockerfile"):${{ github.sha }}"
             # Build Docker image
             docker buildx build -t "$image_name" "$dockerfile"
