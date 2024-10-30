@@ -34,3 +34,25 @@ jobs:
 
           echo "$changed_files_json"
           echo "changed_files_json=$changed_files_json" >> $GITHUB_OUTPUT
+
+      - name: Generate list of Dockerfiles to build
+        id: generate_dockerfile_list
+        run: |
+          # Convert JSON array of changed files back to bash array
+          changed_files=$(echo "${{ steps.get_changed_files.outputs.changed_files_json }}" | jq -r '.[]')
+          
+          dockerfile_dirs=()
+          for file in $changed_files; do
+            if [[ $file == *Dockerfile ]]; then
+              dockerfile_dirs+=($(dirname $file))
+            elif [[ $file == managed-containers/* ]] && [[ -f $(dirname $file)/Dockerfile ]]; then
+              dockerfile_dirs+=($(dirname $file))
+            fi
+          done
+
+          # Remove duplicates from dockerfile_dirs
+          unique_dockerfile_dirs=($(echo "${dockerfile_dirs[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+          
+          echo "Dockerfile directories to build: ${unique_dockerfile_dirs[@]}"
+          echo "dockerfile_dirs=${unique_dockerfile_dirs[@]}" >> $GITHUB_OUTPUT
+
