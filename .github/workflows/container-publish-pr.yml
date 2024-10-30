@@ -79,7 +79,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Trivy
-        uses: aquasecurity/setup-trivy@v0.4.3
+        uses: aquasecurity/setup-trivy@v0.2.2
 
       - name: Build, Scan, and Push Docker Images
         if: steps.generate_dockerfile_list.outputs.dockerfile_dirs != ''
