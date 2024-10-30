@@ -69,12 +69,12 @@ jobs:
           fi
       
           # Convert unique_dockerfiles_to_build to a JSON array using jq and echo
-          json_array=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R . | jq -s 'map(.)')
+          json_array=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R . | jq -s .)
           # Echo out the Dockerfiles to be built
           echo "Dockerfiles to build: ${unique_dockerfiles_to_build[@]}"
       
           # Output the JSON array
-          echo "dockerfile_dirs=$json_array" >> $GITHUB_OUTPUT
+          echo "dockerfile_dirs=${json_array}" >> $GITHUB_OUTPUT
       
 
       - name: Set up Docker Build Environment
