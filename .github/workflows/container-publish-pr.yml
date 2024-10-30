@@ -31,7 +31,7 @@ jobs:
           changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
           changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
 
-          echo "Changed files: $changed_files_json"
+          echo "Changed files: $changed_files"
 
           # Set the JSON string as an output
           echo "changed_files=$changed_files_json" >> $GITHUB_OUTPUT
@@ -46,3 +46,30 @@ jobs:
 
           echo "Changed files to process:"
           echo "$changed_files_list"
+
+          dockerfiles_to_build=()
+          while IFS= read -r file; do
+            # Check if the changed file is a Dockerfile
+            if [[ $file == *Dockerfile ]]; then
+              dockerfiles_to_build+=("$file")
+            # Check if the directory of the changed file contains a Dockerfile
+            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
+              dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
+            fi
+      
+            # Check if the file is in manage-containers and add the top-level Dockerfile if it exists
+            if [[ $file == manage-containers/*/* ]]; then
+              top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
+              if [[ -f "$top_level_dir/Dockerfile" ]]; then
+                dockerfiles_to_build+=("$top_level_dir/Dockerfile")
+              fi
+            fi
+          done <<< "$changed_files_list"
+
+          # Remove duplicates from dockerfiles_to_build
+          unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+          if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
+            echo "No Dockerfiles found to build. Exiting..."
+            exit 0
+          fi
