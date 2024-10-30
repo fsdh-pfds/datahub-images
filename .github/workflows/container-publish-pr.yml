@@ -45,7 +45,7 @@ jobs:
           for file in $changed_files; do
             if [[ $file == *Dockerfile ]]; then
               dockerfile_dirs+=($(dirname $file))
-            elif [[ $file == managed-containers/* ]] && [[ -f $(dirname $file)/Dockerfile ]]; then
+            elif [[ -f $(dirname $file)/Dockerfile ]]; then
               dockerfile_dirs+=($(dirname $file))
             fi
           done
@@ -55,4 +55,3 @@ jobs:
           
           echo "Dockerfile directories to build: ${unique_dockerfile_dirs[@]}"
           echo "dockerfile_dirs=${unique_dockerfile_dirs[@]}" >> $GITHUB_OUTPUT
-
