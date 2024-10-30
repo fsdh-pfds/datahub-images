@@ -79,7 +79,7 @@ jobs:
 
           unique_dockerfiles_to_build_json=$(echo "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
           echo "Changed files to process:"
-          echo "$unique_dockerfiles_to_build"
+          echo "$unique_dockerfiles_to_build_json"
 
 
           echo "unique_dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> $GITHUB_OUTPUT
