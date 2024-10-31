@@ -116,3 +116,4 @@ jobs:
               echo "Detected vulnerabilities for $image_name."
             fi
           done <<< "$dockerfiles_files_list"
+
