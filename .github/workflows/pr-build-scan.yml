@@ -10,7 +10,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    permissions: read-all
+
+permissions: read-all
 
     steps:
       - name: Checkout repository
