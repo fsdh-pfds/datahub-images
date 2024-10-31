@@ -17,7 +17,7 @@ This will install Prettier as a development dependency and format all files in t
 You can use the following alias command to run [Super-Linter](https://github.com/github/super-linter):
 
 ```bash
-alias sl='docker run -e RUN_LOCAL=true -e LOG_LEVEL=ERROR -e DEFAULT_BRANCH=$(git rev-parse --abbrev-ref HEAD) -v "$(pwd)":/tmp/lint --rm ghcr.io/super-linter/super-linter:slim-v7.1.0'
+alias sl='docker run -e RUN_LOCAL=true -e LOG_LEVEL=ERROR -e DEFAULT_BRANCH=$(git rev-parse --abbrev-ref HEAD) -v "$(git rev-parse --show-toplevel)":/tmp/lint --rm ghcr.io/super-linter/super-linter:slim-v7.1.0'
 ```
 
 This alias runs Super-Linter locally, using the current branch as the default branch for comparison.
