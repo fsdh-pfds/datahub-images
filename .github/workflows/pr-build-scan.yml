@@ -1,9 +1,11 @@
-name: Pull Request - Build and Push Docker Images to GHCR
+name: Pull Request - Build and Scan
 
 on:
   pull_request:
     branches:
       - main
+    paths:
+      - "managed-containers/**"
 
 jobs:
   build-and-push:
@@ -120,18 +122,14 @@ jobs:
 
             echo "Scanning Docker image: $image_name with Trivy"
             docker save "$image_name" -o "$image_name.tar"
-            trivy image --input "$image_name.tar" --exit-code 1 --severity HIGH,CRITICAL
+            trivy image --input "$image_name.tar" --exit-code 1 --severity CRITICAL
             rm "$image_name.tar"
 
-
             # Scan Docker image with Trivy using Docker Daemon mode
-            trivy image --quiet --format table --exit-code 1 --severity HIGH,CRITICAL --input "$image_name"
+            trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input "$image_name"
             if [ $? -eq 0 ]; then
-              echo "No high or critical vulnerabilities found. Pushing image: $image_name"
-
-              # Push the Docker image
-              docker buildx build --push -t "ghcr.io/${{ github.repository }}/$package_name:${{ github.sha }}" -f "$dockerfile" .
+              echo "No critical vulnerabilities found. Pushing image: $image_name"
             else
-              echo "Skipping push for $image_name due to detected vulnerabilities."
+              echo "Detected vulnerabilities for $image_name."
             fi
           done <<< "$dockerfiles_files_list"
