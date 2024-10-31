@@ -1,0 +1,20 @@
+name: base
+channels:
+ - conda-forge
+dependencies:
+ - panel
+ - dask
+ - xarray
+ - netcdf4
+ - h5netcdf
+ - scipy
+ - hvplot
+ - plotly
+ - cartopy
+ - geoviews
+ - holoviews
+ - numbagg
+ - bottleneck
+ - notebook
+ - bokeh
+ - param
