@@ -13,106 +13,101 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Fetch full history to get commit information
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch full history to get commit information
 
-    - name: Get list of changed files
-      id: get_changed_files
-      run: |
-        # Get the list of changed files and convert to JSON format
-        changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
-        changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+      - name: Get list of changed files
+        id: get_changed_files
+        run: |
+          # Get the list of changed files and convert to JSON format
+          changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
+          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
 
-        echo "Changed files: $changed_files"
+          echo "Changed files: $changed_files"
 
-        # Set the JSON string as an output
-        echo "changed_files=$changed_files_json" >> $GITHUB_OUTPUT
+          # Set the JSON string as an output
+          echo "changed_files=$changed_files_json" >> $GITHUB_OUTPUT
 
-    - name: Generate list of Dockerfiles to build
-      id: generate_dockerfile_list
-      run: |
-        # Convert JSON array of changed files back to bash array       
-        changed_files_json='${{ steps.get_changed_files.outputs.changed_files }}'
+      - name: Generate list of Dockerfiles to build
+        id: generate_dockerfile_list
+        run: |
+          # Convert JSON array of changed files back to bash array       
+          changed_files_json='${{ steps.get_changed_files.outputs.changed_files }}'
 
-        mapfile -t changed_files_list < <(echo "$changed_files_json" | jq -r '.[]')
-        #echo "Changed files to process:"
-        #echo "$changed_files_list"
+          mapfile -t changed_files_list < <(echo "$changed_files_json" | jq -r '.[]')
 
-        dockerfiles_to_build=()
-        for file in "\${file_list[@]}"; do
-          # Check if the changed file is a Dockerfile
-          if [[ $file == *Dockerfile ]]; then
-            dockerfiles_to_build+=("$file")
-          # Check if the directory of the changed file contains a Dockerfile
-          elif [[ -f $(dirname "$file")/Dockerfile ]]; then
-            dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
-          fi
-
-          # Check if the file is in manage-containers and add the top-level Dockerfile if it exists
-          if [[ $file == manage-containers/*/* ]]; then
-            top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
-            if [[ -f "$top_level_dir/Dockerfile" ]]; then
-              dockerfiles_to_build+=("$top_level_dir/Dockerfile")
+          dockerfiles_to_build=()
+          for file in "${changed_files_list[@]}"; do
+            # Check if the changed file is a Dockerfile
+            if [[ $file == *Dockerfile ]]; then
+              dockerfiles_to_build+=("$file")
+            # Check if the directory of the changed file contains a Dockerfile
+            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
+              dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
             fi
+
+            # Check if the file is in managed-containers and add the top-level Dockerfile if it exists
+            if [[ $file == managed-containers/*/* ]]; then
+              top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
+              if [[ -f "$top_level_dir/Dockerfile" ]]; then
+                dockerfiles_to_build+=("$top_level_dir/Dockerfile")
+              fi
+            fi
+          done
+
+          # Remove duplicates from dockerfiles_to_build
+          unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+          if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
+            echo "No Dockerfiles found to build. Exiting..."
+            exit 0
           fi
-        done <<< "$changed_files_list"
 
-        # Remove duplicates from dockerfiles_to_build
-        unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+          echo "Unique Dockerfiles to build: ${unique_dockerfiles_to_build[@]}"
 
-        if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
-          echo "No Dockerfiles found to build. Exiting..."
-          exit 0
-        fi
+          # Convert to JSON for output
+          unique_dockerfiles_to_build_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
 
-        echo "Unique Dockerfiles to build: ${unique_dockerfiles_to_build[@]}"
+          echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> $GITHUB_OUTPUT
 
-        # Convert to JSON for output
-        unique_dockerfiles_to_build_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
 
-        echo "Serialized JSON:"
-        echo "$unique_dockerfiles_to_build_json"
+      - name: Set up Docker Build Environment
+        uses: docker/setup-buildx-action@v3
 
-        echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> $GITHUB_OUTPUT
+      - name: Build, Scan, and Push Docker Images
+        run: |
+          # Convert JSON array of changed files back to a newline-separated list
+          dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
+          mapfile -t dockerfiles_list < <(echo "$dockerfiles_json" | jq -r '.[]')
 
-    - name: Set up Trivy
-      uses: aquasecurity/setup-trivy@v0.2.2
+          echo "Dockerfile files to process:"
+          echo "$dockerfiles_list"
 
-    - name: Set up Docker Build Environment
-      uses: docker/setup-buildx-action@v3
+          # Iterate through each Dockerfile path
+          for dockerfile in "${dockerfiles_list[@]}"; do
+            # Extract the package name and convert to lowercase
+            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
 
-    - name: Build, Scan, and Push Docker Images
-      run: |
-        # Convert JSON array of changed files back to a newline-separated list
-        dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
-        mapfile -t dockerfiles_files_list < <(echo "$dockerfiles_json" | jq -r '.[]')
+            # Define image name with :latest tag
+            image_name="$package_name:latest"
 
-        echo "Dockerfile files to process:"
-        echo "$dockerfiles_files_list"
+            echo "Building Docker image: $image_name from $dockerfile"
 
-        # Iterate through each Dockerfile path
-        for dockerfile in "\${dockerfile_list[@]}"; do
-          # Extract the package name and convert to lowercase
-          package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
+            # Build Docker image
+            docker buildx build --load -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
 
-          # Define image name with :latest tag
-          image_name="$package_name:latest"
+            echo "Scanning Docker image: $image_name with Trivy"
+            docker save "$image_name" -o "$image_name.tar"
+            trivy image --input "$image_name.tar" --exit-code 1 --severity CRITICAL
+            rm "$image_name.tar"
 
-          echo "Building Docker image: $image_name from $dockerfile"
-
-          # Build Docker image
-          docker buildx build --load -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
-
-          echo "Scanning Docker image: $image_name with Trivy"
-          docker save "$image_name" -o "$image_name.tar"
-          trivy image --input "$image_name.tar" --exit-code 1 --severity CRITICAL
-          rm "$image_name.tar"
-
-          if trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input "$image_name"; then
-            echo "No critical vulnerabilities found. Pushing image: $image_name"
-          else
-            echo "Detected vulnerabilities for $image_name."
-          fi
-        done <<< "$dockerfiles_files_list"
+            if trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input "$image_name"; then
+              echo "No critical vulnerabilities found. Pushing image: $image_name"
+            else
+              echo "Detected vulnerabilities for $image_name."
+            fi
+          done
