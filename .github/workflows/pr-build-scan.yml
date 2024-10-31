@@ -116,6 +116,7 @@ jobs:
               echo "No critical vulnerabilities found in image: $image_name"
             else
               echo "Detected vulnerabilities for $image_name."
+              exit 1
             fi
             # Remove the tar file after scanning
             rm "$image_name.tar"
