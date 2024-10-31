@@ -1,4 +1,4 @@
-# Docker 
+# Docker
 
 ## Build and run locally
 

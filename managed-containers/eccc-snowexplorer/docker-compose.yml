@@ -1,0 +1,12 @@
+services:
+  panel_azathoth2:
+    image: ghcr.io/erikapption/snowexplorer-fsdh:latest
+    container_name: snow_explorer
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - AFSISIO=/home/smco502  
+      - ESMFMKFILE=/opt/conda/lib/esmf.mk
+    volumes:
+      - /datahub-blob/snow-explorer:/data
