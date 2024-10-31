@@ -19,7 +19,7 @@ RUN /databricks/conda/bin/conda env create --file /databricks/.conda-env-def/env
 RUN /databricks/conda/bin/conda config --system --set channel_priority strict \
     && /databricks/conda/bin/conda config --system --set always_yes True
 
-# Stage 3: Final
+# Stage 3: FinalL
 FROM base AS final
 
 RUN useradd -m appuser
