@@ -43,11 +43,11 @@ jobs:
         run: |
           # Convert JSON array of changed files back to bash array       
           changed_files_json='${{ steps.get_changed_files.outputs.changed_files }}'
-      
+
           changed_files_list=$(echo "$changed_files_json" | jq -r '.[]')
           #echo "Changed files to process:"
           #echo "$changed_files_list"
-      
+
           dockerfiles_to_build=()
           while IFS= read -r file; do
             # Check if the changed file is a Dockerfile
@@ -57,7 +57,7 @@ jobs:
             elif [[ -f $(dirname "$file")/Dockerfile ]]; then
               dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
             fi
-      
+
             # Check if the file is in manage-containers and add the top-level Dockerfile if it exists
             if [[ $file == manage-containers/*/* ]]; then
               top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
@@ -66,17 +66,17 @@ jobs:
               fi
             fi
           done <<< "$changed_files_list"
-      
+
           # Remove duplicates from dockerfiles_to_build
           unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-      
+
           if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
             echo "No Dockerfiles found to build. Exiting..."
             exit 0
           fi
-      
+
           echo "Unique Dockerfiles to build: ${unique_dockerfiles_to_build[@]}"
-      
+
           # Convert to JSON for output
           unique_dockerfiles_to_build_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
 
@@ -84,7 +84,7 @@ jobs:
           echo "$unique_dockerfiles_to_build_json"
 
           echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> $GITHUB_OUTPUT
-      
+
       - name: Set up Trivy
         uses: aquasecurity/setup-trivy@v0.2.2
 
@@ -97,7 +97,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Build, Scan, and Push Docker Images
         run: |
           # Convert JSON array of changed files back to a newline-separated list
