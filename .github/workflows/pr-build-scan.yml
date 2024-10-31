@@ -58,7 +58,7 @@ jobs:
           done
 
           # Remove duplicates from dockerfiles_to_build
-          unique_dockerfiles_to_build=($(echo "${dockerfiles_to_build[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+          mapfile -t unique_dockerfiles_to_build < <(printf "%s\n" "${dockerfiles_to_build[@]}" | sort -u)
 
           if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
             echo "No Dockerfiles found to build. Exiting..."
@@ -78,7 +78,7 @@ jobs:
       - name: Set up Docker Build Environment
         uses: docker/setup-buildx-action@v3
 
-      - name: Build, Scan, and Push Docker Images
+      - name: Build and Scan Docker Images
         run: |
           # Convert JSON array of changed files back to a newline-separated list
           dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
