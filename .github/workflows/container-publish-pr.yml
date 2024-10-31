@@ -119,8 +119,11 @@ jobs:
             docker buildx build --load -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
 
             echo "Scanning Docker image: $image_name with Trivy"
-            export DOCKER_HOST=unix:///$HOME/.docker/run/docker.sock
+            docker save "$image_name" -o "$image_name.tar"
+            trivy image --input "$image_name.tar" --exit-code 1 --severity HIGH,CRITICAL
+            rm "$image_name.tar"
 
+            
             # Scan Docker image with Trivy using Docker Daemon mode
             trivy image --exit-code 1 --severity HIGH,CRITICAL --input "$image_name"
             if [ $? -eq 0 ]; then
