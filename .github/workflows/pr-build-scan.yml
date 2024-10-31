@@ -7,12 +7,11 @@ on:
     paths:
       - "managed-containers/**"
 
+permissions: read-all
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
-permissions: read-all
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -117,4 +116,3 @@ permissions: read-all
               echo "Detected vulnerabilities for $image_name."
             fi
           done <<< "$dockerfiles_files_list"
-
