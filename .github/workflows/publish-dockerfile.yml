@@ -13,10 +13,7 @@ on:
     paths:
       - "managed-containers/**"
 
-permissions:
-  contents: write
-  packages: write
-
+permissions: read-all
 
 jobs:
   build-publish:
@@ -25,13 +22,6 @@ jobs:
       contents: write
       packages: write
     steps:
-      - name: Convert App token
-        id: create_token
-        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
-        with:
-          app_id: ${{ vars.FSDH_PACKAGE_ADMIN_APP_ID }}
-          private_key: ${{ secrets.FSDH_PACKAGE_ADMIN_APP_KEY }}
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -96,7 +86,6 @@ jobs:
           # Set the JSON string as an output for use in later steps
           echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> "$GITHUB_OUTPUT"
 
-
       - name: Set up Docker Build Environment
         uses: docker/setup-buildx-action@v3
         # Set up Docker Buildx, which allows building multi-platform Docker images
@@ -117,6 +106,8 @@ jobs:
           # Convert JSON array to a bash array
           mapfile -t dockerfiles_list < <(echo "$dockerfiles_json" | jq -r '.[]')
 
+          mkdir -p trivy-results
+
           echo "Dockerfile files to process: ${dockerfiles_list[*]}"
 
           # Iterate through each Dockerfile path
@@ -136,4 +127,13 @@ jobs:
 
             docker push "$repo_path"
 
+            echo "Scanning $image_name..."
+            trivy image --severity CRITICAL,HIGH --format sarif --output "trivy-results/${$package_name}.sarif" "repo_path"
+
           done
+
+      # Step 5: Upload SARIF file to GitHub Code Scanning
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-results/
