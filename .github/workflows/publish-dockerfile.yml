@@ -86,6 +86,10 @@ jobs:
           # Set the JSON string as an output for use in later steps
           echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> "$GITHUB_OUTPUT"
 
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+        # Set up Trivy, a tool for scanning Docker images for vulnerabilities
+
       - name: Set up Docker Build Environment
         uses: docker/setup-buildx-action@v3
         # Set up Docker Buildx, which allows building multi-platform Docker images
