@@ -132,7 +132,7 @@ jobs:
             docker push "$repo_path"
 
             echo "Scanning $image_name..."
-            trivy image --severity CRITICAL,HIGH --format sarif --output "trivy-results/${package_name}.sarif" "repo_path"
+            trivy image --severity CRITICAL,HIGH --format sarif --output "trivy-results/${package_name}.sarif" "$repo_path"
 
           done
 
