@@ -1,4 +1,4 @@
-name: Pull Request - Build and Scan (Refactored)
+name: Publish Container 
 
 on:  
   pull_request:
