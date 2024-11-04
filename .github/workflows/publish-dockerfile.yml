@@ -1,0 +1,92 @@
+name: Pull Request - Build and Scan (Refactored)
+
+on:  
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "managed-containers/**"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "managed-containers/**"
+
+permissions: read-all
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch full history to get commit information, useful for getting details of previous commits
+
+      - name: Get changed Dockerfiles
+        id: get_changed_dockerfiles
+        run: |
+          # Get list of changed files between base and head of the pull request
+          changed_files=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
+          dockerfiles=()
+          
+          while IFS= read -r file; do
+            # If the changed file is a Dockerfile or its directory contains a Dockerfile, add it to the list
+            if [[ $file == *Dockerfile || -f $(dirname "$file")/Dockerfile ]]; then
+              dockerfiles+=("$(dirname "$file")/Dockerfile")
+            elif [[ $file == managed-containers/*/* ]]; then
+              # Add the top-level directory's Dockerfile if changed file is under managed-containers
+              top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
+              if [[ -f "$top_level_dir/Dockerfile" ]]; then
+                dockerfiles+=("$top_level_dir/Dockerfile")
+              fi
+            fi
+          done <<< "$changed_files"
+          
+          # Remove duplicate Dockerfiles from the list
+          dockerfiles=($(echo "${dockerfiles[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+          
+          if [ ${#dockerfiles[@]} -eq 0 ]; then
+            echo "No Dockerfiles to build. Exiting..."
+            exit 0
+          fi
+          
+          # Set output as JSON array
+          dockerfiles_json=$(printf '%s\n' "${dockerfiles[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "dockerfiles=$dockerfiles_json" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Build Environment
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Scan Docker Images
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dockerfiles_json='${{ steps.get_changed_dockerfiles.outputs.dockerfiles }}'
+          mapfile -t dockerfiles_list < <(echo "$dockerfiles_json" | jq -r '.[]')
+
+          for dockerfile in "${dockerfiles_list[@]}"; do
+            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
+            image_name="$package_name:latest"
+
+            # Generate a unique image name based on the directory name
+            base_name="ghcr.io/${{ github.repository_owner }}/$dockerfile"
+
+            echo "Building Docker image: $image_name from $dockerfile"
+            docker buildx build --load --no-cache -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
+
+            echo "Pushing Docker image to GitHub Container Registry: $image_name"
+            docker push "$image_name"
+
+          done
