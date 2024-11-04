@@ -106,7 +106,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ vars.FSDH_PACKAGE_ADMIN_APP_ID }}
-          password: ${{GITHUB_TOKEN }}
+          password: ${{ steps.create_token.outputs.token }}
 
       - name: Build and Scan Docker Images
         env:
