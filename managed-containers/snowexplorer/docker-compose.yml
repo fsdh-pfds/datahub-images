@@ -13,4 +13,4 @@ services:
       - SERIES_FILE=/data/series_snw_station_diff_alti.nc
     volumes:
       - ./data:/data
-      - ./SnowExplorer-V5.ipynb:/snowexplorer.ipynb  
+      - ./SnowExplorer-V5.ipynb:/snowexplorer.ipynb

@@ -45,11 +45,6 @@ To build and run the Docker image for SnowExplorer:
      snowexplorer
    ```
 
-   ```
-
-
-   ```
-
 ## Setting Up the Environment
 
 The `environment.yml` file sets up the Conda environment called `snowexplorer`. It includes all the important tools like `panel`, `dask`, `xarray`, and `bokeh` that are needed for the app.
@@ -87,7 +82,7 @@ This lets you tweak how the server runs to fit your needs.
 
 ## Using the Image from GitHub Container Registry
 
-*Placeholder: Instructions on how to pull and use the Docker image from the GitHub Container Registry will be added here.*
+_Placeholder: Instructions on how to pull and use the Docker image from the GitHub Container Registry will be added here._
 
 ## Running with Docker Compose
 
@@ -116,7 +111,7 @@ services:
 To run the application using Docker Compose:
 
 ```sh
-docker-compose build --progress=plain 
+docker-compose build --progress=plain
 
 docker-compose up
 ```
