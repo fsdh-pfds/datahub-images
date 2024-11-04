@@ -1,12 +1,6 @@
-name: Publish Container 
+name: Publish Containers
 
-on:  
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "managed-containers/**"
-
+on:
   push:
     branches:
       - main
@@ -117,7 +111,7 @@ jobs:
           # Iterate through each Dockerfile path
           for dockerfile in "${dockerfiles_list[@]}"; do
             # Extract the package name from the directory containing the Dockerfile and convert to lowercase
-            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
+            package_name="$(basename $(dirname $dockerfile) | tr '[:upper:]' '[:lower:]')"
 
             # Define the image name with the :latest tag
             image_name="$package_name:latest"
@@ -127,7 +121,7 @@ jobs:
             echo $repo_path 
 
             # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
-            docker buildx build --load --no-cache -t "$repo_path" -f "$dockerfile" "$(dirname "$dockerfile")"
+            docker buildx build --load --no-cache -t "$repo_path" -f "$dockerfile" "$(dirname $dockerfile)"
 
             docker push "$repo_path"
 
