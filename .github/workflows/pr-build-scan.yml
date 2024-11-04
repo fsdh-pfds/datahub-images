@@ -86,6 +86,8 @@ jobs:
         # Set up Docker Buildx, which allows building multi-platform Docker images
 
       - name: Build and Scan Docker Images
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Get the JSON array of Dockerfiles to build from the previous step
           dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
