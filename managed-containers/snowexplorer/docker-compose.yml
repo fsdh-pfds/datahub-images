@@ -1,12 +1,17 @@
+version: "3.3" # or a different version that suits your Docker environment
+
 services:
-  panel_azathoth2:
-    image: ghcr.io/erikapption/snowexplorer-fsdh:latest
-    container_name: snow_explorer
+  panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     ports:
       - "8080:8080"
     environment:
-      - AFSISIO=/home/smco502  
-      - ESMFMKFILE=/opt/conda/lib/esmf.mk
+      - SCORE_FILE=/data/score_snw_station_diff_alti_200_HRDPS_CaPA01_CaPA02_period_20191001_20220629.nc
+      - SERIES_FILE=/data/series_snw_station_diff_alti_200_HRDPS_CaPA01_CaPA02_period_20191001_20220629.nc
     volumes:
-      - /datahub-blob/snow-explorer:/data
+      # FSDH Config
+      - ./data:/data
+      - ./SnowExplorer-V5.ipynb:/notebook.ipynb  
