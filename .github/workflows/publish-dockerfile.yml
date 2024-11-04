@@ -126,12 +126,13 @@ jobs:
 
             # Define the image name with the :latest tag
             image_name="$package_name:latest"
-            base_name="ghcr.io/${{ github.repository_owner }}/$package_name"
+            repo_path="ghcr.io/${{ github.repository_owner }}/$image_name"
 
             echo "Building Docker image: $image_name from $dockerfile"
+            echo $repo_path 
 
             # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
-            docker buildx build --load --no-cache -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
+            docker buildx build --load --no-cache -t "$repo_path" -f "$dockerfile" "$(dirname "$dockerfile")"
 
             docker push "$image_name"
 
