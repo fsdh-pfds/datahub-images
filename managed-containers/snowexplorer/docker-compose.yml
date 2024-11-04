@@ -9,9 +9,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SCORE_FILE=/data/score_snw_station_diff_alti_200_HRDPS_CaPA01_CaPA02_period_20191001_20220629.nc
-      - SERIES_FILE=/data/series_snw_station_diff_alti_200_HRDPS_CaPA01_CaPA02_period_20191001_20220629.nc
+      - SCORE_FILE=/data/score_snw_station_diff_alti.nc
+      - SERIES_FILE=/data/series_snw_station_diff_alti.nc
     volumes:
-      # FSDH Config
       - ./data:/data
-      - ./SnowExplorer-V5.ipynb:/notebook.ipynb  
+      - ./SnowExplorer-V5.ipynb:/snowexplorer.ipynb  
