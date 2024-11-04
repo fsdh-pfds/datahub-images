@@ -114,7 +114,6 @@ jobs:
             docker save "$image_name" -o "$image_name.tar"
 
             # Perform a scan to determine if vulnerabilities exist
-
             if trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input "$image_name.tar"; then
 
               echo "No critical vulnerabilities found in image: $image_name"
@@ -122,6 +121,7 @@ jobs:
               echo "Detected vulnerabilities for $image_name."
               exit 1
             fi
+            
             # Remove the tar file after scanning
             rm "$image_name.tar"
           done
