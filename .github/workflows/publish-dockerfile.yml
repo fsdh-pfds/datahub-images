@@ -15,8 +15,9 @@ on:
 
 permissions: read-all
 
+
 jobs:
-  build:
+  build-publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -24,43 +25,72 @@ jobs:
         with:
           fetch-depth: 0 # Fetch full history to get commit information, useful for getting details of previous commits
 
-      - name: Get changed Dockerfiles
-        id: get_changed_dockerfiles
+      - name: Get list of changed files
+        id: get_changed_files
         run: |
-          # Get list of changed files between base and head of the pull request
-          changed_files=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
-          dockerfiles=()
-          
-          while IFS= read -r file; do
-            # If the changed file is a Dockerfile or its directory contains a Dockerfile, add it to the list
-            if [[ $file == *Dockerfile || -f $(dirname "$file")/Dockerfile ]]; then
-              dockerfiles+=("$(dirname "$file")/Dockerfile")
-            elif [[ $file == managed-containers/*/* ]]; then
-              # Add the top-level directory's Dockerfile if changed file is under managed-containers
+          # Get the list of changed files between the base and head of the pull request
+          changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
+          # Convert the list of changed files to a JSON array
+          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+
+          echo "Changed files: $changed_files"
+
+          # Set the JSON string as an output for use in later steps
+          echo "changed_files=$changed_files_json" >> "$GITHUB_OUTPUT"
+
+      - name: Generate list of Dockerfiles to build
+        id: generate_dockerfile_list
+        run: |
+          # Get the JSON array of changed files from the previous step
+          changed_files_json='${{ steps.get_changed_files.outputs.changed_files }}'
+
+          # Convert JSON array to a bash array
+          mapfile -t changed_files_list < <(echo "$changed_files_json" | jq -r '.[]')
+
+          dockerfiles_to_build=()
+          for file in "${changed_files_list[@]}"; do
+            # Check if the changed file is a Dockerfile
+            if [[ $file == *Dockerfile ]]; then
+              dockerfiles_to_build+=("$file")
+            # Check if the directory of the changed file contains a Dockerfile
+            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
+              dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
+            fi
+
+            # Check if the file is in managed-containers and add the top-level Dockerfile if it exists
+            if [[ $file == managed-containers/*/* ]]; then
+              # Extract the top-level directory (e.g., managed-containers/component)
               top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
               if [[ -f "$top_level_dir/Dockerfile" ]]; then
-                dockerfiles+=("$top_level_dir/Dockerfile")
+                dockerfiles_to_build+=("$top_level_dir/Dockerfile")
               fi
             fi
-          done <<< "$changed_files"
-          
+          done
+
           # Remove duplicate Dockerfiles from the list
-          dockerfiles=($(echo "${dockerfiles[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-          
-          if [ ${#dockerfiles[@]} -eq 0 ]; then
-            echo "No Dockerfiles to build. Exiting..."
+          mapfile -t unique_dockerfiles_to_build < <(printf "%s\n" "${dockerfiles_to_build[@]}" | sort -u)
+
+          # Exit if no Dockerfiles are found
+          if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
+            echo "No Dockerfiles found to build. Exiting..."
             exit 0
           fi
-          
-          # Set output as JSON array
-          dockerfiles_json=$(printf '%s\n' "${dockerfiles[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "dockerfiles=$dockerfiles_json" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Docker Build Environment
-        uses: docker/setup-buildx-action@v3
+          echo "Unique Dockerfiles to build: ${unique_dockerfiles_to_build[*]}"
+
+          # Convert the list of unique Dockerfiles to a JSON array for output
+          unique_dockerfiles_to_build_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          # Set the JSON string as an output for use in later steps
+          echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> "$GITHUB_OUTPUT"
 
       - name: Set up Trivy
         uses: aquasecurity/setup-trivy@v0.2.2
+        # Set up Trivy, a tool for scanning Docker images for vulnerabilities
+
+      - name: Set up Docker Build Environment
+        uses: docker/setup-buildx-action@v3
+        # Set up Docker Buildx, which allows building multi-platform Docker images
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -69,24 +99,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Images
+      - name: Build and Scan Docker Images
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dockerfiles_json='${{ steps.get_changed_dockerfiles.outputs.dockerfiles }}'
+          # Get the JSON array of Dockerfiles to build from the previous step
+          dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
+          # Convert JSON array to a bash array
           mapfile -t dockerfiles_list < <(echo "$dockerfiles_json" | jq -r '.[]')
 
-          for dockerfile in "${dockerfiles_list[@]}"; do
-            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
-            image_name="$package_name:latest"
+          echo "Dockerfile files to process: ${dockerfiles_list[*]}"
 
-            # Generate a unique image name based on the directory name
-            base_name="ghcr.io/${{ github.repository_owner }}/$dockerfile"
+          # Iterate through each Dockerfile path
+          for dockerfile in "${dockerfiles_list[@]}"; do
+            # Extract the package name from the directory containing the Dockerfile and convert to lowercase
+            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
+
+            # Define the image name with the :latest tag
+            image_name="$package_name:latest"
+            base_name="ghcr.io/${{ github.repository_owner }}/$package_name"
 
             echo "Building Docker image: $image_name from $dockerfile"
+
+            # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
             docker buildx build --load --no-cache -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
 
-            echo "Pushing Docker image to GitHub Container Registry: $image_name"
             docker push "$image_name"
 
           done
