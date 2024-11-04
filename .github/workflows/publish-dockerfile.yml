@@ -102,6 +102,9 @@ jobs:
       - name: Build and Scan Docker Images
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        permissions:
+          contents: write
+          packages: write
         run: |
           # Get the JSON array of Dockerfiles to build from the previous step
           dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
