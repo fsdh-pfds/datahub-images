@@ -134,6 +134,6 @@ jobs:
             # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
             docker buildx build --load --no-cache -t "$repo_path" -f "$dockerfile" "$(dirname "$dockerfile")"
 
-            docker push "$image_name"
+            docker push "$repo_path"
 
           done
