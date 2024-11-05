@@ -1,6 +1,11 @@
 name: Publish Containers
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "managed-containers/**"
   push:
     branches:
       - main
