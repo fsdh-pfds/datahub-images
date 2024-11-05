@@ -125,6 +125,14 @@ jobs:
 
             docker push "$repo_path"
 
+            echo "Setting visibility to public for $repo_path..."
+
+            gh api \
+              --method PATCH \
+              -H "Accept: application/vnd.github.v3+json" \
+              "/orgs/${{ github.repository_owner }}/packages/container/${package_name}/visibility" \
+              -f visibility="public"
+
             echo "Scanning $image_name..."
             trivy image --severity CRITICAL,HIGH --format sarif --output "trivy-results/${package_name}.sarif" "$repo_path"
 
