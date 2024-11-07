@@ -48,5 +48,6 @@ ENTRYPOINT ["python", "-m", "panel", "serve", "/snowexplorer.ipynb", "--index=sn
 # Default command-line options for the panel server
 CMD ["--num-procs=1", \  
      "--num-threads=10", \  
-     "--websocket-max-message-size=100000000" \
+     "--websocket-max-message-size=100000000", \
+     "--allow-websocket-origin=*" \
     ]
