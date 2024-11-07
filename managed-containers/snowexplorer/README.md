@@ -116,4 +116,5 @@ docker-compose build --progress=plain
 docker-compose up
 ```
 
+
 The first command will build the image, and the second will run the container based on what's in the `docker-compose.yml` file.
