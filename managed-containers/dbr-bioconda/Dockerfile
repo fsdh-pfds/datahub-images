@@ -1,5 +1,5 @@
 # Stage 1: Base
-FROM databricksruntime/python:12.2-LTS AS base
+FROM databricksruntime/python:15.4-LTS@sha256:86b96c8693388a9533ca9f85069a76d9e8a6552b766fac676359cfea5a2e22b9 AS base
 
 RUN apt-get update && apt-get install -y wget=1.20.3-1ubuntu1 bzip2=1.0.8-2 libdigest-sha-perl=6.02-1build2 && rm -rf /var/lib/apt/lists/*
 
