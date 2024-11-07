@@ -1,8 +1,6 @@
 name: snowexplorer
-
 channels:
   - conda-forge
-
 dependencies:
   - panel
   - dask
