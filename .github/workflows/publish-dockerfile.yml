@@ -25,7 +25,7 @@ jobs:
         id: get_changed_files
         run: |
           # Get the list of changed files between the base and head of the pull request
-          changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
+          changed_files=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
           # Convert the list of changed files to a JSON array
           changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
 
