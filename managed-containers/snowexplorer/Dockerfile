@@ -49,5 +49,4 @@ ENTRYPOINT ["python", "-m", "panel", "serve", "/snowexplorer.ipynb", "--index=sn
 CMD ["--num-procs=1", \  
      "--num-threads=10", \  
      "--websocket-max-message-size=100000000" \
-     "--allow-websocket-origin=localhost:8080" \
     ]
