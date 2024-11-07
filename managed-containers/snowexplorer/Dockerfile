@@ -43,7 +43,7 @@ USER nonroot
 HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
 
 # Set the entry point to start the application using Conda
-ENTRYPOINT ["python", "-m", "panel", "serve", "/snowexplorer.ipynb", "--index=snowexplorer", "--port=8080", "--address=0.0.0.0", "--allow-websocket-origin=localhost:8080"]
+ENTRYPOINT ["python", "-m", "panel", "serve", "/snowexplorer.ipynb", "--index=snowexplorer", "--port=8080", "--address=0.0.0.0"]
 
 # Default command-line options for the panel server
 CMD ["--num-procs=1", \  
