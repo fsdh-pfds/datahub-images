@@ -41,3 +41,9 @@ jobs:
             --field has_wiki=false \
             --field squash_merge_commit_message=PR_BODY \
             --field squash_merge_commit_title=PR_TITLE
+
+      - name: Configure repository settings
+        run: |
+          gh api "orgs/${{ github.repository_owner }}/teams/datahub-images-write/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}" \
+            --method PUT \
+            --field permission=push
