@@ -3,6 +3,7 @@ from dash.dependencies import Input, Output, State
 from dash import html, dcc
 import psycopg2
 import pandas as pd
+from dotenv import load_dotenv
 import os
 
 # Initialize the Dash app
@@ -12,15 +13,16 @@ app = dash.Dash(__name__,
 
 error_occur = False
 
-try:
-    # Retrieve the secrets containing DB connection details
+load_dotenv()  # Load environment variables from .env file
 
-    # Retrieve the secrets containing DB connection details
-    DB_NAME = "fsdh"
-    DB_HOST = 'fsdh-scawwas-psql-poc.postgres.database.azure.com'
+try:
+    # Retrieve the secrets containing DB connection details from environment variables
+    DB_NAME = os.getenv("DB_NAME", "fsdh")
+    DB_HOST = os.getenv("DB_HOST", "fsdh-scawwas-psql-poc.postgres.database.azure.com")
+    DB_USER = os.getenv("DB_USER", "fsdhadmin")
+    DB_PASS = os.getenv("DB_PASS", "")  # It will default to an empty string if not set
+
     print(f"DB_HOST is {DB_HOST}")
-    DB_USER = 'fsdhadmin'
-    DB_PASS = ''
 except Exception as e:
     error_occur = True
     print(f"An error occurred: {e} | Une erreur s'est produite: {e}")

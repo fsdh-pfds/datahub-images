@@ -27,7 +27,7 @@ COPY --from=python-base /app/venv /app/venv
 ENV PATH="/app/venv/bin:$PATH"
 
 # Copy the application code
-COPY . .
+COPY app.py app.py
 
 # Expose the port the application will use
 EXPOSE 80
