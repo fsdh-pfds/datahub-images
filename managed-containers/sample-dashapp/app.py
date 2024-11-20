@@ -17,9 +17,9 @@ load_dotenv()  # Load environment variables from .env file
 
 try:
     # Retrieve the secrets containing DB connection details from environment variables
-    DB_NAME = os.getenv("DB_NAME", "fsdh")
-    DB_HOST = os.getenv("DB_HOST", "fsdh-scawwas-psql-poc.postgres.database.azure.com")
-    DB_USER = os.getenv("DB_USER", "fsdhadmin")
+    DB_NAME = os.getenv("DB_NAME", "YourDB")
+    DB_HOST = os.getenv("DB_HOST", "postgres.database.azure.com")
+    DB_USER = os.getenv("DB_USER", "user")
     DB_PASS = os.getenv("DB_PASS", "")  # It will default to an empty string if not set
 
     print(f"DB_HOST is {DB_HOST}")
