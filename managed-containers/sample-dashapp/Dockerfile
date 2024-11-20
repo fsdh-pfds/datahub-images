@@ -1,5 +1,5 @@
 # Base image for setting up dependencies
-FROM cgr.dev/chainguard/python:3.9-dev AS python-base
+FROM cgr.dev/chainguard/python:latest-dev AS python-base
 
 # Set working directory
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final production image
-FROM cgr.dev/chainguard/python:3.9 AS final
+FROM cgr.dev/chainguard/python:latest AS final
 
 # Set working directory
 WORKDIR /app
