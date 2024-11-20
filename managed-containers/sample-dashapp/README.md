@@ -12,7 +12,7 @@ python -m venv venv
 
 ### Step 2: Activate Virtual Environment
 
-Open a powershell console (or terminal in VS Code)
+Open a powershell console (or terminal in Visual Studio Code)
 
 ```bash
 ./venv/scripts/activate
@@ -41,7 +41,7 @@ A secret is required in the script to lock the local vault. The same secret will
 
 ### Step 1: Activate Virtual Environment
 
-Open a powershell console (or terminal in VS Code)
+Open a powershell console (or terminal in Visual Studio Code)
 
 ```bash
 ./venv/scripts/activate
