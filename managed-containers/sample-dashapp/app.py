@@ -1,10 +1,11 @@
-import dash
-from dash.dependencies import Input, Output, State
-from dash import html, dcc
-import psycopg2
-import pandas as pd
-from dotenv import load_dotenv
 import os
+
+import dash
+import pandas as pd
+import psycopg2
+from dash import dcc, html
+from dash.dependencies import Input, Output, State
+from dotenv import load_dotenv
 
 # Initialize the Dash app
 app = dash.Dash(
