@@ -68,8 +68,7 @@ app.layout = html.Div(
         ),
         dcc.Input(id="add-name", type="text", placeholder="Name | Nom"),
         dcc.Input(id="add-type", type="text", placeholder="Type | Type"),
-        dcc.Input(id="add-radius", type="number",
-                  placeholder="Radius | Rayon"),
+        dcc.Input(id="add-radius", type="number", placeholder="Radius | Rayon"),
         dcc.Input(id="add-mass", type="number", placeholder="Mass | Masse"),
         dcc.Input(
             id="add-distance",
@@ -93,8 +92,7 @@ app.layout = html.Div(
         ),
         html.Div(id="delete-output"),
     ],
-    style={"width": "50%", "margin": "auto",
-           "font-family": "Arial, sans-serif"},
+    style={"width": "50%", "margin": "auto", "font-family": "Arial, sans-serif"},
 )
 
 
@@ -145,8 +143,7 @@ def plot_celestial_bodies(n_clicks, name):
 
         # Run the query
         cur.execute(
-            "SELECT * FROM celestial_bodies WHERE name LIKE '%{}%'".format(
-                name)
+            "SELECT * FROM celestial_bodies WHERE name LIKE '%{}%'".format(name)
         )
         result = cur.fetchall()
 
@@ -157,8 +154,7 @@ def plot_celestial_bodies(n_clicks, name):
         # Convert query result to DataFrame
         df = pd.DataFrame(
             result,
-            columns=["id", "name", "type", "radius",
-                     "mass", "distance from sun"],
+            columns=["id", "name", "type", "radius", "mass", "distance from sun"],
         )
 
         # Create a scatter plot
@@ -239,8 +235,7 @@ def get_celestial_body(n_clicks, name):
 
         # Run the query
         cur.execute(
-            "SELECT * FROM celestial_bodies WHERE name LIKE '%{}%'".format(
-                name)
+            "SELECT * FROM celestial_bodies WHERE name LIKE '%{}%'".format(name)
         )
         result = cur.fetchall()
 
@@ -252,8 +247,7 @@ def get_celestial_body(n_clicks, name):
         if result:
             df = pd.DataFrame(
                 result,
-                columns=["id", "name", "type", "radius",
-                         "mass", "distance from sun"],
+                columns=["id", "name", "type", "radius", "mass", "distance from sun"],
             )  # Replace with actual column names
             return html.Table(
                 # Header
@@ -262,8 +256,7 @@ def get_celestial_body(n_clicks, name):
                         [
                             html.Th(
                                 col,
-                                style={"border": "1px solid black",
-                                       "padding": "8px"},
+                                style={"border": "1px solid black", "padding": "8px"},
                             )
                             for col in df.columns
                         ]
@@ -276,8 +269,7 @@ def get_celestial_body(n_clicks, name):
                         [
                             html.Td(
                                 df.iloc[i][col],
-                                style={"border": "1px solid black",
-                                       "padding": "8px"},
+                                style={"border": "1px solid black", "padding": "8px"},
                             )
                             for col in df.columns
                         ]
