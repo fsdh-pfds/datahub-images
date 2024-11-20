@@ -12,10 +12,10 @@ ENV PATH="/app/venv/bin:$PATH"
 
 # Copy requirements file and install dependencies
 COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-install-recommends --no-cache-dir -r requirements.txt
 
 # Final production image
-FROM cgr.dev/chainguard/python:latest AS final
+FROM cgr.dev/chainguard/python@sha256:52820d1718fe1263cb8459cf7db1b136bcdf4758ac7f6dff7599d309ebd3eaf8 AS final
 
 # Set working directory
 WORKDIR /app
