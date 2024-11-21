@@ -1,3 +1,4 @@
+-- sqlfluff:dialect:postgres
 --
 -- PostgreSQL database dump
 --
@@ -43,10 +44,12 @@ CREATE SEQUENCE public.celestial_bodies_id_seq
 --
 -- TOC entry 3565 (class 0 OID 0)
 -- Dependencies: 202
--- Name: celestial_bodies_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: celestial_bodies_id_seq; 
+-- Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.celestial_bodies_id_seq OWNED BY public.celestial_bodies.id;
+ALTER SEQUENCE public.celestial_bodies_id_seq
+    OWNED BY public.celestial_bodies.id;
 
 
 --
@@ -54,7 +57,8 @@ ALTER SEQUENCE public.celestial_bodies_id_seq OWNED BY public.celestial_bodies.i
 -- Name: celestial_bodies id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.celestial_bodies ALTER COLUMN id SET DEFAULT nextval('public.celestial_bodies_id_seq'::regclass);
+ALTER TABLE ONLY public.celestial_bodies ALTER COLUMN id
+    SET DEFAULT nextval('public.celestial_bodies_id_seq'::regclass);
 
 
 --
@@ -63,8 +67,8 @@ ALTER TABLE ONLY public.celestial_bodies ALTER COLUMN id SET DEFAULT nextval('pu
 -- Data for Name: celestial_bodies; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.celestial_bodies (id, name, body_type, mean_radius_km, mass_kg, distance_from_sun_km) FROM stdin;
-1	Mercury	Planet	2439.7	330110000000000000000000	57909227
+COPY public.celestial_bodies (id, name, body_type, mean_radius_km, mass_kg, distance_from_sun_km) FROM stdin;   -- noqa: PRS
+1	Mercury	Planet	2439.7	330110000000000000000000	57909227 
 2	Venus	Planet	6051.8	4867500000000000000000000	108209475
 3	Earth	Planet	6371.0	5972370000000000000000000	149598262
 4	Mars	Planet	3389.5	641710000000000000000000	227943824
@@ -99,4 +103,3 @@ ALTER TABLE ONLY public.celestial_bodies
 --
 -- PostgreSQL database dump complete
 --
-
