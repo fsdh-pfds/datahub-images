@@ -1,8 +1,0 @@
-# docker-compose.yml
-services:
-  web:
-    build: .
-    image: ghcr.io/ssc-sp/sample-dashapp:latest
-    container_name: dash-app
-    ports:
-      - "80:80"
