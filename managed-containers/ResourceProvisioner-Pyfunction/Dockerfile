@@ -39,3 +39,5 @@ COPY function_app.py /home/site/wwwroot/
 HEALTHCHECK CMD curl --fail http://localhost:80/health || exit 1
 
 EXPOSE 80
+
+USER function-app
