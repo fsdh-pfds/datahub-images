@@ -151,7 +151,7 @@ def send_healthcheck_to_service_bus(message):
                 print(f"Sent message to queue: {check_results_queue_name}")
     except Exception:
         logging.exception(
-            f"An error occurred while sending health check to service bus"
+            "An error occurred while sending health check to service bus"
         )
 
 
@@ -209,7 +209,7 @@ def new_sync_workspace(workspace_definition):
             try:
                 logging.info(f"Synchronizing {name} for {workspace_name}.")
                 sync_fn(workspace_definition)
-            except Exception as e:
+            except Exception:
                 error_msg = f"Error synchronizing {name} for {workspace_name}"
                 logging.exception(error_msg)
                 errors.append(error_msg)
