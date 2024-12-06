@@ -35,3 +35,7 @@ COPY --from=requirements /function-app/venv /function-app/venv
 # Copy the application code
 WORKDIR /home/site/wwwroot
 COPY function_app.py /home/site/wwwroot/
+
+HEALTHCHECK CMD curl --fail http://localhost:80/health || exit 1
+
+EXPOSE 80
