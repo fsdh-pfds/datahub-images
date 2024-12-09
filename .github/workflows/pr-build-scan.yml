@@ -79,6 +79,9 @@ jobs:
 
       - name: Set up Trivy
         uses: aquasecurity/setup-trivy@v0.2.2
+        env:
+          TRIVY_SKIP_DB_UPDATE: true
+          TRIVY_SKIP_JAVA_DB_UPDATE: true
         # Set up Trivy, a tool for scanning Docker images for vulnerabilities
 
       - name: Set up Docker Build Environment
