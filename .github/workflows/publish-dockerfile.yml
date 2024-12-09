@@ -1,3 +1,4 @@
+---
 name: Publish Containers
 
 on:
@@ -98,8 +99,6 @@ jobs:
       - name: Build and Scan Docker Images
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TRIVY_SKIP_DB_UPDATE: true
-          TRIVY_SKIP_JAVA_DB_UPDATE: true
         run: |
           # Get the JSON array of Dockerfiles to build from the previous step
           dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
