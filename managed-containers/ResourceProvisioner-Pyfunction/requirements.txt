@@ -3,7 +3,7 @@ azure-graphrbac==0.61.1
 azure-identity==1.16.1
 azure-keyvault==4.2.0
 azure-keyvault-administration==4.3.0
-azure-keyvault-certificates==4.7.0
+azure-keyvault-certificates==4.9.0
 azure-keyvault-keys==4.8.0
 azure-keyvault-secrets==4.7.0
 azure-servicebus==7.12.2
