@@ -149,9 +149,7 @@ def send_healthcheck_to_service_bus(message):
                 sender.send_messages(q_message)
                 print(f"Sent message to queue: {check_results_queue_name}")
     except Exception:
-        logging.exception(
-            "An error occurred while sending health check to service bus"
-        )
+        logging.exception("An error occurred while sending health check to service bus")
 
 
 def keys_upper(dictionary):
