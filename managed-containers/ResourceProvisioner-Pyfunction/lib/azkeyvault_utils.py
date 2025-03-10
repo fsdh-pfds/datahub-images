@@ -1,7 +1,6 @@
 from azure.mgmt.keyvault import KeyVaultManagementClient
 from azure.identity import ClientSecretCredential
-from azure.mgmt.keyvault import KeyVaultManagementClient
-from azure.mgmt.keyvault.models import AccessPolicyEntry, VaultAccessPolicyParameters, SecretPermissions
+from azure.mgmt.keyvault.models import AccessPolicyEntry
 import os
 import lib.constants as constants
 
@@ -40,7 +39,6 @@ def list_secrets(client: KeyVaultManagementClient, environment_name, definition_
     rg_name, vault_name = get_kv_reference(environment_name, definition_json)
     print(f"using vault: [{rg_name}].[{vault_name}]")
 
-    vault = client.vaults.get(rg_name, vault_name)
     # Get a list of secrets
     secrets = client.secrets.list(rg_name, vault_name)
     return secrets

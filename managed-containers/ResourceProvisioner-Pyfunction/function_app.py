@@ -150,7 +150,7 @@ def send_healthcheck_to_service_bus(message):
                 print(f"Sent message to queue: {check_results_queue_name}")
     except Exception:
         logging.exception(
-            f"An error occurred while sending health check to service bus"
+            "An error occurred while sending health check to service bus"
         )
 
 
