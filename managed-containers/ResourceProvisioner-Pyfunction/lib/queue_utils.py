@@ -1,6 +1,6 @@
-import uuid
-import json
 import datetime
+import json
+import uuid
 
 
 class MassTransitMessage:

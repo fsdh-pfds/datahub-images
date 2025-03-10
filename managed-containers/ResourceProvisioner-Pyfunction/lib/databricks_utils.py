@@ -1,10 +1,12 @@
+import logging
+import os
+
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.iam import ComplexValue
-from databricks.sdk.service.workspace import AzureKeyVaultSecretScopeMetadata
-from databricks.sdk.service.workspace import ScopeBackendType
+from databricks.sdk.service.workspace import (AzureKeyVaultSecretScopeMetadata,
+                                              ScopeBackendType)
+
 import lib.azkeyvault_utils as azkv_utils
-import os
-import logging
 
 WORKSPACE_KV_SCOPE_NAME = "dh-workspace"
 

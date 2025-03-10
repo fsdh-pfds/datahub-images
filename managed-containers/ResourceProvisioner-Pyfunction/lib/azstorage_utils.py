@@ -1,8 +1,10 @@
+import os
+import uuid
+
 from azure.identity import ClientSecretCredential
 from azure.mgmt.authorization import AuthorizationManagementClient
 from azure.mgmt.authorization.models import RoleAssignmentCreateParameters
-import os
-import uuid
+
 import lib.constants as constants
 
 CONTRIBUTOR = "ba92f5b4-2d11-453d-a403-e96b0029c9fe"

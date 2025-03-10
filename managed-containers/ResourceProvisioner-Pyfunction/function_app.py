@@ -1,13 +1,15 @@
-import azure.functions as func
-import logging
-import lib.databricks_utils as dtb_utils
-import lib.azkeyvault_utils as azkv_utils
-import lib.azstorage_utils as azsg_utils
-import azure.servicebus as servicebus
-import os
 import json
+import logging
+import os
+
+import azure.functions as func
+import azure.servicebus as servicebus
 import bug_report_message as brm
 import healthcheck_message as hcm
+
+import lib.azkeyvault_utils as azkv_utils
+import lib.azstorage_utils as azsg_utils
+import lib.databricks_utils as dtb_utils
 from lib.queue_utils import MassTransitMessage
 
 # from lib.databricks_utils import get_workspace_client, remove_deleted_users_in_workspace, synchronize_workspace_users

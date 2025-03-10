@@ -1,7 +1,9 @@
-from azure.mgmt.keyvault import KeyVaultManagementClient
-from azure.identity import ClientSecretCredential
-from azure.mgmt.keyvault.models import AccessPolicyEntry
 import os
+
+from azure.identity import ClientSecretCredential
+from azure.mgmt.keyvault import KeyVaultManagementClient
+from azure.mgmt.keyvault.models import AccessPolicyEntry
+
 import lib.constants as constants
 
 
