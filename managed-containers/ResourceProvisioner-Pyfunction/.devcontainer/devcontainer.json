@@ -22,6 +22,6 @@
 		}
 	  }
 	},
-	"postCreateCommand": "pip install pytest"
+	"postCreateCommand": "pip install -r requirements.txt && pip install pytest"
   }
   
