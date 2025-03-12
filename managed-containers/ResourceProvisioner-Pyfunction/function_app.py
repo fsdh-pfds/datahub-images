@@ -10,25 +10,15 @@ import healthcheck_message as hcm
 import lib.azkeyvault_utils as azkv_utils
 import lib.azstorage_utils as azsg_utils
 import lib.databricks_utils as dtb_utils
-from lib.queue_utils import MassTransitMessage
 
-# from lib.databricks_utils import get_workspace_client, remove_deleted_users_in_workspace, synchronize_workspace_users
-# from azure.servicebus import ServiceBusClient, ServiceBusMessage
+from lib.queue_utils import MassTransitMessage
+from config import DATAHUB_ENVNAME, AZURE_SUBSCRIPTION_ID,AZURE_TENANT_ID, asb_connection_str, queue_name, check_results_queue_name
+
 
 ERROR_DETAILS_JOINER = "; "
 PYTHON_WORKSPACE_SYNC_ERROR_CODE = 7023
 
 app = func.FunctionApp()
-
-
-def get_config():
-    asb_connection_str = os.getenv("DatahubServiceBus")
-    queue_name = os.getenv("AzureServiceBusQueueName4Bugs") or "bug-report"
-    check_results_queue_name = (
-        os.getenv("AzureServiceBusQueueName4Results")
-        or "infrastructure-health-check-results"
-    )
-    return asb_connection_str, queue_name, check_results_queue_name
 
 
 def get_sync_func_mappings():
@@ -97,7 +87,6 @@ def queue_sync_workspace_users_function(msg: func.ServiceBusMessage):
 
 
 def send_exception_to_service_bus(exception_message):
-    asb_connection_str, queue_name, check_results_queue_name = get_config()
     bug_report = brm.BugReportMessage(
         UserName="Datahub Portal",
         UserEmail="",
@@ -132,7 +121,6 @@ def send_exception_to_service_bus(exception_message):
 
 def send_healthcheck_to_service_bus(message):
     try:
-        asb_connection_str, queue_name, check_results_queue_name = get_config()
         with servicebus.ServiceBusClient.from_connection_string(
             asb_connection_str,
             transport_type=servicebus.TransportType.AmqpOverWebsocket,
@@ -276,14 +264,10 @@ def sync_keyvault_workspace_users_function(workspace_definition):
         None
 
     """
-    # get environment name from environment variables
-    environment_name = os.environ["DataHub_ENVNAME"]
-    subscription_id = os.environ["AzureSubscriptionId"]
-    tenantId = os.environ["AzureTenantId"]
 
-    kv_client = azkv_utils.get_keyvault_client(subscription_id, tenantId)
+    kv_client = azkv_utils.get_keyvault_client(AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID)
     azkv_utils.synchronize_access_policies(
-        kv_client, environment_name, workspace_definition, tenantId
+        kv_client, DATAHUB_ENVNAME, workspace_definition, AZURE_TENANT_ID
     )
 
     # Cleanup users in workspace that aren't in AAD Graph
@@ -302,14 +286,10 @@ def sync_storage_workspace_users_function(workspace_definition):
         None
 
     """
-    # get environment name from environment variables
-    environment_name = os.environ["DataHub_ENVNAME"]
-    subscription_id = os.environ["AzureSubscriptionId"]
-    tenantId = os.environ["AzureTenantId"]
 
-    sg_client = azsg_utils.get_authorization_client(subscription_id, tenantId)
+    sg_client = azsg_utils.get_authorization_client(AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID)
     azsg_utils.synchronize_access_policies(
-        sg_client, subscription_id, environment_name, workspace_definition
+        sg_client, AZURE_SUBSCRIPTION_ID, DATAHUB_ENVNAME, workspace_definition
     )
 
     # Cleanup users in workspace that aren't in AAD Graph

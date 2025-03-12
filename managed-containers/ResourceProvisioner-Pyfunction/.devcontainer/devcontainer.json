@@ -13,8 +13,7 @@
 	  "vscode": {
 		"extensions": [
 		  "ms-python.python",
-		  "ms-python.vscode-pylance",
-		  "littlefoxteam.vscode-python-test-adapter"
+		  "ms-python.vscode-pylance"
 		],
 		"settings": {
 		  "python.testing.unittestEnabled": false,
