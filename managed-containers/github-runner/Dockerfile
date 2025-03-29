@@ -7,15 +7,7 @@ RUN apt-get update && apt-get install -y curl jq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# copy over the start.sh script
-COPY start.sh start.sh
-
-# make the script executable
-RUN chmod +x start.sh
-
-# since the config and run script for actions are not allowed to be run by root,
-# set the user to "runner" so all subsequent commands are run as the runner user
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 USER runner
-
-# set the entrypoint to the start.sh script
-ENTRYPOINT ["./start.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
