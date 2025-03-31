@@ -12,4 +12,4 @@ RUN apt-get update && \
 COPY entrypoint.sh /entrypoint.sh
 
 USER runner
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
