@@ -29,7 +29,6 @@ header="$(printf '{"alg":"RS256","typ":"JWT"}' | base64url)"
 now="$(date '+%s')"
 iat="$((now - 60))"
 exp="$((now + (10 * 60)))"  # 10 minutes expiration
-template='{"iss":"%s","iat":%s,"exp":%s}'
 payload="$(printf '{"iss":"%s","iat":%s,"exp":%s}' "$GITHUB_APP_ID" "$iat" "$exp" | base64url)"
 
 signature="$(printf '%s' "$header.$payload" | sign | base64url)"
