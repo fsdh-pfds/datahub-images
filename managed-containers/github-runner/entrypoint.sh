@@ -6,6 +6,10 @@
 [ -z "$ORG_NAME" ] && { echo "Error: ORG_NAME not set"; exit 1; }
 [ -z "$GH_URL" ] && { echo "Error: GH_URL not set"; exit 1; }
 
+# Optional environment variables
+[ -z "$GITHUB_RUNNER_GROUP" ] && echo "Warning: GITHUB_RUNNER_GROUP not set"
+[ -z "$GITHUB_RUNNER_LABELS" ] && echo "Warning: GITHUB_RUNNER_LABELS not set"
+
 # Temp file for private key
 temp_key=$(mktemp)
 echo "$APP_KEY" > "$temp_key"
@@ -29,6 +33,7 @@ template='{"iss":"%s","iat":%s,"exp":%s}'
 payload="$(printf "$template" "$GITHUB_APP_ID" "$iat" "$exp" | base64url)"
 signature="$(printf '%s' "$header.$payload" | sign | base64url)"
 jwt="$header.$payload.$signature"
+rm -f "$temp_key"
 
 # Fetch installations
 echo "Fetching installations for App ID $GITHUB_APP_ID..."
@@ -40,7 +45,7 @@ installations=$(curl -s -H "Authorization: Bearer $jwt" \
 # Check if installations exist
 if [ -z "$installations" ] || [ "$installations" = "[]" ]; then
   echo "No installations found for this app. Please install the app first."
-  rm -f "$temp_key"
+  
   exit 1
 fi
 
@@ -49,7 +54,6 @@ installation_id=$(echo "$installations" | jq -r --arg org "$ORG_NAME" '.[] | sel
 if [ -z "$installation_id" ] || [ "$installation_id" = "null" ]; then
   echo "Error: Could not find installation ID for org $ORG_NAME"
   echo "Raw response: $installations"
-  rm -f "$temp_key"
   exit 1
 fi
 
@@ -71,7 +75,6 @@ if [ -z "$token" ] || [ "$token" = "null" ]; then
     --header "Accept: application/vnd.github+json" \
     --header "X-GitHub-Api-Version: 2022-11-28" \
     --header "Authorization: Bearer $jwt"
-  rm -f "$temp_key"
   exit 1
 fi
 echo "Access Token: $token"
@@ -92,16 +95,24 @@ if [ -z "$registration_token" ] || [ "$registration_token" = "null" ]; then
     -H "Authorization: Bearer $token" \
     -H 'X-GitHub-Api-Version: 2022-11-28' \
     "https://api.github.com/orgs/$ORG_NAME/actions/runners/registration-token"
-  rm -f "$temp_key"
   exit 1
 fi
-echo "Registration Token: $registration_token"
 
 # Configure and run the runner
 echo "Configuring runner..."
-if ! ./config.sh --url "$GH_URL" --token "$registration_token" --unattended --ephemeral; then
+args=(--url "$GH_URL" --token "$registration_token" --unattended --ephemeral)
+
+if [ -n "$GITHUB_RUNNER_GROUP" ]; then
+  args+=(--runnergroup "$GITHUB_RUNNER_GROUP")
+fi
+
+if [ -n "$GITHUB_RUNNER_LABELS" ]; then
+  args+=(--labels "$GITHUB_RUNNER_LABELS")
+fi
+
+# Execute the command
+if ! ./config.sh "${args[@]}"; then
   echo "Error: Failed to configure runner"
-  rm -f "$temp_key"
   exit 1
 fi
 
@@ -110,3 +121,4 @@ echo "Starting runner..."
 
 # Cleanup
 rm -f "$temp_key"
+unset jwt
