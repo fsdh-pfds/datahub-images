@@ -30,7 +30,8 @@ now="$(date '+%s')"
 iat="$((now - 60))"
 exp="$((now + (10 * 60)))"  # 10 minutes expiration
 template='{"iss":"%s","iat":%s,"exp":%s}'
-payload="$(printf "$template" "$GITHUB_APP_ID" "$iat" "$exp" | base64url)"
+payload="$(printf '{"iss":"%s","iat":%s,"exp":%s}' "$GITHUB_APP_ID" "$iat" "$exp" | base64url)"
+
 signature="$(printf '%s' "$header.$payload" | sign | base64url)"
 jwt="$header.$payload.$signature"
 rm -f "$temp_key"
