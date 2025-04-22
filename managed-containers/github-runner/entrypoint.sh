@@ -21,6 +21,15 @@
 # Optional environment variables
 [ -z "$GITHUB_RUNNER_GROUP" ] && echo "Warning: GITHUB_RUNNER_GROUP not set"
 [ -z "$GITHUB_RUNNER_LABELS" ] && echo "Warning: GITHUB_RUNNER_LABELS not set"
+[ -z "$ROOT_CA" ] && echo "Warning: ROOT_CA not set"
+
+# Optional: import custom root CA from environment variable
+if [ -n "$ROOT_CA" ]; then
+	echo "Installing custom root CA…"
+	echo "$ROOT_CA" >/usr/local/share/ca-certificates/custom-root-ca.crt
+
+	sudo update-ca-certificates
+fi
 
 # Temp file for private key
 temp_key=$(mktemp)
