@@ -25,10 +25,10 @@
 
 # Optional: import custom root CA from environment variable
 if [ -n "$ROOT_CA" ]; then
-  echo "Installing custom root CA…"
-  echo "$ROOT_CA" > /usr/local/share/ca-certificates/custom-root-ca.crt
+	echo "Installing custom root CA…"
+	echo "$ROOT_CA" > /usr/local/share/ca-certificates/custom-root-ca.crt
 
-  sudo update-ca-certificates
+	sudo update-ca-certificates
 fi
 
 # Temp file for private key

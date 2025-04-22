@@ -4,10 +4,6 @@ USER root
 
 COPY packages.list /tmp/packages.list
 
-# Install sudo and ca-certificates
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends sudo ca-certificates
-
 # Configure passwordless sudo for update-ca-certificates
 RUN echo "runner ALL=(root) NOPASSWD: /usr/sbin/update-ca-certificates" \
     > /etc/sudoers.d/runner-update-ca && \
