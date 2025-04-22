@@ -7,3 +7,4 @@ powershell=7.5.0-1.deb
 terraform=1.11.4-1
 azure-cli=2.71.0-1~jammy
 gh=2.4.0+dfsg1-2
+python3-pip=22.0.2+dfsg-1ubuntu0.5

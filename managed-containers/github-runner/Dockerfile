@@ -3,6 +3,7 @@ FROM ghcr.io/actions/actions-runner@sha256:831a2607a2618e4b79d9323b4c72330f38617
 USER root
 
 COPY packages.list /tmp/packages.list
+COPY requirements.txt /tmp/requirements.txt
 
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg -o /tmp/hashicorp.gpg && \
     gpg --dearmor < /tmp/hashicorp.gpg > /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
@@ -16,6 +17,10 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg -o /tmp/hashicorp.gpg && \
 RUN apt-get update && \
     xargs -a /tmp/packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Support Root Pinning    
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    rm -rf ~/.cache/pip /tmp/requirements.txt
 
 # Copy custom entrypoint script
 COPY entrypoint.sh /entrypoint.sh
