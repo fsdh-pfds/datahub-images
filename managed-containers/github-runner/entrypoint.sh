@@ -26,7 +26,8 @@
 # Optional: import custom root CA from environment variable
 if [ -n "$ROOT_CA" ]; then
 	echo "Installing custom root CA…"
-	echo "$ROOT_CA" >/tmp/custom-root-ca.crt
+	cp /opt/az/lib/python*/site-packages/certifi/cacert.pem /tmp/custom-root-ca.crt
+  	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
 fi
 
 # Temp file for private key
