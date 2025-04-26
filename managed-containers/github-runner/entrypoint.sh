@@ -27,10 +27,10 @@
 if [ -n "$ROOT_CA" ]; then
 	echo "Installing custom root CA…"
 	cp /opt/az/lib/python*/site-packages/certifi/cacert.pem /tmp/custom-root-ca.crt
-  	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
+	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
 fi
 
-jwt="$(cat $JWT_TOKEN_FILEPATH)"
+jwt=$(<"$JWT_TOKEN_FILEPATH")
 
 # Fetch installations
 echo "Fetching installations for App ID $GITHUB_APP_ID..."
@@ -117,5 +117,4 @@ echo "Starting runner..."
 ./run.sh
 
 # Cleanup
-rm -f "$temp_key"
 unset jwt
