@@ -144,6 +144,6 @@ jobs:
 
       # Step 5: Upload SARIF file to GitHub Code Scanning
       - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@b6a472f63d85b9c78a3ac5e89422239fc15e9b3c # v3
+        uses: github/codeql-action/upload-sarif@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3
         with:
           sarif_file: trivy-results/
