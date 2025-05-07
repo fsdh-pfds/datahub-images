@@ -2,16 +2,19 @@
 ARG UBUNTU_VERSION=24.04
 FROM ubuntu:$UBUNTU_VERSION
 
+# Enable headless mode
+ENV DEBIAN_FRONTEND=noninteractive
+
 COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
 
 # Install base packages.list
-# ./get-versions --list openssl ca-certificates jq curl gpg lsb-release git
+# ./get-versions --list openssl ca-certificates jq curl gpg lsb-release git debsums liblttng-ust1 libicu74 wget
 RUN apt-get update && \
     xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-#Install addon repositories    
+# Install addon repositories    
 RUN curl -fsSL https://apt.releases.hashicorp.com/gpg -o /tmp/hashicorp.gpg && \
     gpg --dearmor < /tmp/hashicorp.gpg > /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" > /etc/apt/sources.list.d/hashicorp.list && \
