@@ -16,7 +16,8 @@
 #   AZP_WORK                  Agent working directory (defaults to _work)
 #   ROOT_CA                   Custom root certificate (PEM format)
 # ----------------------------------------------------------------------------
-# shellcheck disable=SC2317 reason="trap for the cleanup confuses the lintor"
+# Trap for the cleanup confuses the lintor, disabling lint check
+# shellcheck disable=SC2317
 set -euo pipefail
 
 # helper functions
