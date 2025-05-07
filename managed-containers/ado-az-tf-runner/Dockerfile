@@ -9,7 +9,7 @@ COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
 
 # Install base packages.list
-# ./get-versions --list openssl ca-certificates jq curl gpg lsb-release git debsums liblttng-ust1 libicu74 wget
+# ./get-versions --list openssl ca-certificates jq curl gpg lsb-release git debsums liblttng-ust1t64 libicu74 wget
 RUN apt-get update && \
     xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
