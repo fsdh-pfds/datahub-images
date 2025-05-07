@@ -28,6 +28,8 @@ RUN apt-get update && \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+RUN useradd -m -s /bin/bash runner
+
 # Switch to unprivileged user and set entrypoint
 USER runner
 ENTRYPOINT ["/entrypoint.sh"]
