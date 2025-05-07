@@ -46,8 +46,9 @@ done
 # ----- Import custom root CA -----
 if [ -n "${ROOT_CA:-}" ]; then
 	log "Installing custom root CA"
-	printf '%s\n' "$ROOT_CA" >/usr/local/share/ca-certificates/custom.crt
-	update-ca-certificates
+	cp /etc/ssl/certs/ca-certificates.crt /tmp/custom-root-ca.crt
+	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
+	log "Custom RootCA set to /tmp/custom-root-ca.crt "
 fi
 
 # ----- Configuration -----
