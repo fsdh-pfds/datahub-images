@@ -95,6 +95,14 @@ fi
 # Set trap for running cleanup actions
 trap cleanup EXIT INT TERM
 
+# ----- Start up scripts -----
+for script in /startup-scripts/*.sh; do
+  if [ -x "$script" ]; then
+    log "Running startup script: $script"
+    "$script"
+  fi
+done
+
 # ----- Run agent once -----
 log "Starting agent in one-shot mode"
 ./run.sh --once
