@@ -12,7 +12,7 @@ lazr.uri==1.0.6
 more-itertools==8.10.0
 oauthlib==3.2.0
 pip-system-certs==4.0
-PyJWT==2.3.0
+PyJWT==2.4.0
 pyparsing==2.4.7
 python-apt==2.4.0+ubuntu4
 SecretStorage==3.3.1
