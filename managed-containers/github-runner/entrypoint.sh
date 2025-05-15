@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Check environment variables
-[ -z "$APP_KEY" ] && {
-	echo "Error: APP_KEY not set"
+[ -z "$JWT_TOKEN_FILEPATH" ] && {
+	echo "Error: JWT_TOKEN_FILEPATH not set"
 	exit 1
 }
 [ -z "$GITHUB_APP_ID" ] && {
@@ -26,36 +26,11 @@
 # Optional: import custom root CA from environment variable
 if [ -n "$ROOT_CA" ]; then
 	echo "Installing custom root CA…"
-	echo "$ROOT_CA" >/tmp/custom-root-ca.crt
+	cp /opt/az/lib/python*/site-packages/certifi/cacert.pem /tmp/custom-root-ca.crt
+	echo "$ROOT_CA" >>/tmp/custom-root-ca.crt
 fi
 
-# Temp file for private key
-temp_key=$(mktemp)
-echo "$APP_KEY" >"$temp_key"
-
-# Base64url encoding function
-base64url() {
-	openssl enc -base64 -A | tr '+/' '-_' | tr -d '='
-}
-
-# Signing function
-sign() {
-	openssl dgst -binary -sha256 -sign "$temp_key" || {
-		echo "Signing failed"
-		exit 1
-	}
-}
-
-# Generate JWT
-header="$(printf '{"alg":"RS256","typ":"JWT"}' | base64url)"
-now="$(date '+%s')"
-iat="$((now - 60))"
-exp="$((now + (10 * 60)))" # 10 minutes expiration
-payload="$(printf '{"iss":"%s","iat":%s,"exp":%s}' "$GITHUB_APP_ID" "$iat" "$exp" | base64url)"
-
-signature="$(printf '%s' "$header.$payload" | sign | base64url)"
-jwt="$header.$payload.$signature"
-rm -f "$temp_key"
+jwt=$(<"$JWT_TOKEN_FILEPATH")
 
 # Fetch installations
 echo "Fetching installations for App ID $GITHUB_APP_ID..."
@@ -142,5 +117,4 @@ echo "Starting runner..."
 ./run.sh
 
 # Cleanup
-rm -f "$temp_key"
 unset jwt

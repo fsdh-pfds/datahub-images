@@ -1,5 +1,5 @@
 # Base stage to set up Conda environment
-FROM condaforge/miniforge3:24.9.0-0 AS conda-base
+FROM condaforge/miniforge3:24.9.0-0@sha256:44f5a22cb6952aaa9f6ae730c0a815eb4993da1cafc12a80268402f9b966cf0e AS conda-base
 
 # Set environment variables to prevent writing .pyc files and specify the environment file
 ENV PYTHONDONTWRITEBYTECODE=1 \
