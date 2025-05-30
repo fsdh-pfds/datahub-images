@@ -12,7 +12,7 @@ RUN apt-get update && \
     openssl ca-certificates jq curl gpg lsb-release git debsums liblttng-ust1t64 libicu74 wget && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install addon repositories    
+# Install enhancement repositories    
 RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsoft.gpg && \
     gpg --dearmor < /tmp/microsoft.gpg > /usr/share/keyrings/microsoft-archive-keyring.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/microsoft-prod.list && \
@@ -21,7 +21,7 @@ RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsof
 # Install enhancements
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    openssl azure-cli powershell && \
+    azure-cli powershell && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /entrypoint.sh
