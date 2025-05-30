@@ -4,17 +4,18 @@ This Docker image provides a ready‑to‑use, self‑hosted Azure DevOps (ADO) 
 
 ## Key Features
 
-* **Ubuntu 24.04 base** pinned to a SHA256 digest for reproducible builds
-* **PowerShell** for cross‑platform scripting
-* **Azure CLI** to interact with Azure resources directly from your pipelines
-* Common utilities out of the box:
+- **Ubuntu 24.04 base** pinned to a SHA256 digest for reproducible builds
+- **PowerShell** for cross‑platform scripting
+- **Azure CLI** to interact with Azure resources directly from your pipelines
+- Common utilities out of the box:
 
-  * `openssl`, `ca-certificates`
-  * `jq`, `curl`, `wget`
-  * `gpg`, `lsb-release`, `git`, `debsums`
-  * `liblttng-ust0`, `libicu74`
-* Non‑root `runner` user for secure execution
-* `entrypoint.sh` to bootstrap any custom startup logic you need
+  - `openssl`, `ca-certificates`
+  - `jq`, `curl`, `wget`
+  - `gpg`, `lsb-release`, `git`, `debsums`
+  - `liblttng-ust0`, `libicu74`
+
+- Non‑root `runner` user for secure execution
+- `entrypoint.sh` to bootstrap any custom startup logic you need
 
 ## Getting Started
 
@@ -23,6 +24,7 @@ This Docker image provides a ready‑to‑use, self‑hosted Azure DevOps (ADO) 
    ```bash
    docker pull ghcr.io/fsdh-pfds/datahub-images:latest
    ```
+
 2. **Run the container**
    Mount your workspace and register the runner with your ADO organization or project:
 
@@ -38,13 +40,13 @@ This Docker image provides a ready‑to‑use, self‑hosted Azure DevOps (ADO) 
 
 ## Environment
 
-* `DEBIAN_FRONTEND=noninteractive` is set to suppress interactive prompts during `apt-get` installs.
-* The image exposes no ports by default; it is intended to run as a build agent.
+- `DEBIAN_FRONTEND=noninteractive` is set to suppress interactive prompts during `apt-get` installs.
+- The image exposes no ports by default; it is intended to run as a build agent.
 
 ## Metadata & Labels
 
-* **Source:** `https://github.com/fsdh-pfds/datahub-images`
-* **Description:** ADO Linux (ubuntu) Self‑Hosted Runner image with PowerShell and the Azure CLI
+- **Source:** `https://github.com/fsdh-pfds/datahub-images`
+- **Description:** ADO Linux (ubuntu) Self‑Hosted Runner image with PowerShell and the Azure CLI
 
 These labels conform to the [OCI Image Spec](https://github.com/opencontainers/image-spec):
 
