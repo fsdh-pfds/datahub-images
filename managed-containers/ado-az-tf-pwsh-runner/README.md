@@ -7,6 +7,7 @@ This Docker image provides a ready‑to‑use, self‑hosted Azure DevOps (ADO) 
 - **Ubuntu 24.04 base** pinned to a SHA256 digest for reproducible builds
 - **PowerShell** for cross‑platform scripting
 - **Azure CLI** to interact with Azure resources directly from your pipelines
+- **Terraform CLI** to interact and deploy terraform resources directly from your pipelines
 - Common utilities out of the box:
 
   - `openssl`, `ca-certificates`
@@ -21,7 +22,7 @@ This Docker image provides a ready‑to‑use, self‑hosted Azure DevOps (ADO) 
 1. **Pull the image**
 
    ```bash
-   docker pull ghcr.io/fsdh-pfds/ado-az-pwsh-runner:latest
+   docker pull ghcr.io/fsdh-pfds/ado-az-tf-pwsh-runner:latest
    ```
 
 2. **Run the container**
@@ -34,7 +35,7 @@ This Docker image provides a ready‑to‑use, self‑hosted Azure DevOps (ADO) 
      -e AZP_URL=https://dev.azure.com/your-org \
      -e AZP_TOKEN=<your-pat> \
      -e AZP_AGENT_NAME=my-runner \
-     ghcr.io/fsdh-pfds/ado-az-pwsh-runner:latest
+     ghcr.io/fsdh-pfds/ado-az-tf-pwsh-runner:latest
    ```
 
 ## Environment
