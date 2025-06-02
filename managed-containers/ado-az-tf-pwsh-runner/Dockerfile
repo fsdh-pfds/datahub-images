@@ -28,6 +28,12 @@ RUN apt-get update && \
     xargs -a /tmp/addon_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install Powershell Modules
+RUN pwsh -Command \
+    "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction Stop; \
+    Install-Module -Name Az -RequiredVersion 14.0.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
+    Install-Module -Name SqlServer -RequiredVersion 22.3.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber"
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
