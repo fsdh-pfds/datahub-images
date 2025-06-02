@@ -1,6 +1,5 @@
 name: "JFrog OIDC Example"
 on:
-  push:
   workflow_dispatch:
 
 permissions:
@@ -11,25 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Fetch raw ID token from GitHub
-        id: id-token
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.setOutput('id_token', await core.getIDToken())
-
-      - name: Decode and display OIDC claims
-        run: |
-          echo "==== RAW JWT PAYLOAD ===="
-          echo "${{ steps.id-token.outputs.id_token }}" \
-            | cut -d "." -f2 \
-            | base64 -d \
-            | jq .
-
-            
       - name: Configure JFrog CLI via OIDC
         uses: jfrog/setup-jfrog-cli@v4
         env:
