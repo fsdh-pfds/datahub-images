@@ -1,9 +1,10 @@
 name: "JFrog OIDC Example"
 on:
+  push:
   workflow_dispatch:
 
 permissions:
-  id-token: write   # Required for GitHub to expose the OIDC JWT
+  id-token: write 
   contents: read
 
 jobs:
@@ -22,6 +23,8 @@ jobs:
           oidc-provider-name: setup-jfrog-cli
 
       - name: Run JFrog CLI commands
+        env:
+          JF_URL: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
         run: |
           # Test the connection
           jf rt ping
@@ -31,10 +34,3 @@ jobs:
 
           # (Optional) Collect VCS details from git
           jf rt bag
-
-          # Publish build info (or any other build steps you need)
-          jf rt bp
-        env:
-          JF_URL: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
-          # JFrog CLI will pick up the OIDC‐federated access token automatically,
-          # no need to explicitly export JF_ACCESS_TOKEN here.
