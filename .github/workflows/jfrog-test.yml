@@ -19,7 +19,7 @@ jobs:
           JF_URL: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
           JF_PROJECT: ssc-fsdh
         with:
-          oidc-provider-name: setup-jfrog-cli
+          oidc-provider-name: github-oidc
 
       - name: Run JFrog CLI commands
         env:
