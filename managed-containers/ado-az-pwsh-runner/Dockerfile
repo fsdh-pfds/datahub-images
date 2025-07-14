@@ -10,6 +10,7 @@ COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
 
 # Install ca-certificates
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates \
  && rm -rf /var/lib/apt/lists/* 
