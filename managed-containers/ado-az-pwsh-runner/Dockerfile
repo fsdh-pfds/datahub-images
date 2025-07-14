@@ -9,7 +9,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
 
-# Install baseline
+# Install ca-certificates
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/* 
+
+# apt-get shapshot id
+ARG SNAPSHOT_ID=20250530T181600Z
+RUN echo "APT::Snapshot \"${SNAPSHOT_ID}\";" \
+     > /etc/apt/apt.conf.d/50snapshot
+
+# Install snapshotted baseline packages
 RUN apt-get update && \
     xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -20,7 +30,7 @@ RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsof
     echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/microsoft-prod.list && \
     echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list
   
-# Install addons
+# Install snapshotted addon packages
 RUN apt-get update && \
     xargs -a /tmp/addon_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
