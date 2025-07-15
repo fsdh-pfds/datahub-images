@@ -9,3 +9,4 @@ debsums:all=3.0.2.1
 liblttng-ust1t64:amd64=2.13.7-1.1ubuntu2
 libicu74:amd64=74.2-1ubuntu3.1
 wget:amd64=1.21.4-1ubuntu4.1
+unzip:amd64=6.0-28ubuntu4.1
