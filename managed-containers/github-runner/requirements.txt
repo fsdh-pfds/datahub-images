@@ -10,7 +10,7 @@ launchpadlib==1.10.16
 lazr.restfulclient==0.14.4
 lazr.uri==1.0.6
 more-itertools==8.10.0
-oauthlib==3.2.0
+oauthlib==3.2.2
 pip-system-certs==4.0
 PyJWT==2.4.0
 pyparsing==2.4.7
