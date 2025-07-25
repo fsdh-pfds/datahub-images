@@ -11,7 +11,7 @@ ENV DataHub_ENVNAME=dev \
     quarantine_container_name=datahub-quarantine \
     VIRTUAL_ENV=/opt/venv
 
-RUN apt update && apt install -y clamav clamav-daemon curl wget unzip python3-venv && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt install -y clamav clamav-daemon curl wget unzip python3-venv && rm -rf /var/lib/apt/lists/*
 #RUN freshclam
 COPY app/ /app/
 WORKDIR /app
