@@ -8,32 +8,25 @@ from azure.storage.queue import QueueClient
 
 
 def get_config():
-    storage_connection_string = os.getenv("storage_connection_string")
-    queue_name = os.getenv("queue_name") or "virus-scan"
-    quarantine_container_name = (
-        os.getenv("quarantine_container_name") or "datahub-quarantine"
-    )
-    datahub_container_name = os.getenv("container_name") or "datahub"
-    return (
-        storage_connection_string,
-        queue_name,
-        datahub_container_name,
-        quarantine_container_name,
-    )
+    return {
+        "storage_connection_string": os.getenv("storage_connection_string"),
+        "queue_name": os.getenv("queue_name") or "virus-scan",
+        "quarantine_container_name": os.getenv("quarantine_container_name") or "datahub-quarantine",
+        "datahub_container_name": os.getenv("container_name") or "datahub",
+    }
 
+config = get_config()
 
-(
-    storage_connection_string,
-    queue_name,
-    datahub_container_name,
-    quarantine_container_name,
-) = get_config()
 queue_client = QueueClient.from_connection_string(
-    conn_str=storage_connection_string, queue_name=queue_name
+    conn_str=config["storage_connection_string"],
+    queue_name=config["queue_name"],
 )
+
 blob_service_client = BlobServiceClient.from_connection_string(
-    storage_connection_string
+    config["storage_connection_string"]
 )
+
+
 
 
 def scan_file(file_path):
