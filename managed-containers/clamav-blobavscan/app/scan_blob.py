@@ -1,3 +1,4 @@
+# pylint: disable=missing-module-docstring
 import base64
 import json
 import os
