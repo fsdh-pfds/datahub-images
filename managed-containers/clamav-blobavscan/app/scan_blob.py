@@ -72,7 +72,8 @@ def process_message(message):
     if scan_file(local_path) or "clamavtest2025a" in blob_name_in_container:
         print(f"Infected: {blob_name_in_container} at {blob_url}")
 
-        # Set tag (Currently not working for storage accounts that have hierarchical namespaces enabled. )
+        # Set tag (Currently not working for storage accounts that
+        # have hierarchical namespaces enabled. )
         # blob_client.set_blob_tags({"fsdh-scan-status": "failed"})
 
         # Move to infected container
@@ -84,7 +85,9 @@ def process_message(message):
         blob_client.delete_blob()
     else:
         print(f"Clean: {blob_name_in_container}")
-        # blob_client.set_blob_tags({"fsdh-scan-status": "clean"}) # Set tag (Currently not working for storage accounts that have hierarchical namespaces enabled. )
+        # blob_client.set_blob_tags({"fsdh-scan-status": "clean"}) 
+        # Set tag (Currently not working for storage accounts that 
+        # have hierarchical namespaces enabled. )
 
 
 def main():
