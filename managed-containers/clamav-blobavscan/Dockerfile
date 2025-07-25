@@ -1,4 +1,4 @@
-FROM python:3.13-bookworm
+FROM python:3.12-bookworm@sha256:645df645815f1403566b103b2a2bb07f6a01516bbb15078ed004e41d198ba194
 
 ENV DataHub_ENVNAME=dev \   
     AzureTenantId= \
