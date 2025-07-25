@@ -1,0 +1,6 @@
+clamav:arm64=1.0.7+dfsg-1~deb12u1
+clamav-daemon:arm64=1.0.7+dfsg-1~deb12u1
+curl:arm64=7.88.1-10+deb12u12
+wget:arm64=1.21.3-1+deb12u1
+unzip:arm64=6.0-28
+python3-venv:arm64=3.11.2-1+b1

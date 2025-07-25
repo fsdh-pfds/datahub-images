@@ -1,4 +1,4 @@
-FROM python:3.13-bookworm@sha256:645df645815f1403566b103b2a2bb07f6a01516bbb15078ed004e41d198ba194 as build
+FROM python:3.13-bookworm@sha256:645df645815f1403566b103b2a2bb07f6a01516bbb15078ed004e41d198ba194 AS build
 
 ENV VIRTUAL_ENV=/opt/venv \
     DEBIAN_FRONTEND=noninteractive
@@ -13,14 +13,16 @@ ARG SNAPSHOT_ID=20250725T145500Z
 RUN echo "APT::Snapshot \"${SNAPSHOT_ID}\";" \
      > /etc/apt/apt.conf.d/50snapshot
 
-RUN apt-get update && apt-get install -y --no-install-recommends clamav clamav-daemon curl wget unzip python3-venv && \
+COPY base_packages.list /tmp/base_packages.list
+
+RUN apt-get update && \
+    xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY app/ /app/
 WORKDIR /app
 
 RUN python3 -m venv $VIRTUAL_ENV \
- && pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
 
 FROM cgr.dev/chainguard/python:latest@sha256:2fa2e1d5396c78a166f4efa26d1661d89629d897d6c71a00c53d951427d2e8c0 AS runtime
