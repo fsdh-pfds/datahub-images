@@ -37,7 +37,11 @@ blob_service_client = BlobServiceClient.from_connection_string(
 
 
 def scan_file(file_path):
-    result = subprocess.run(["clamscan", file_path], capture_output=True, text=True)
+    result = subprocess.run(
+        ["clamscan", file_path],
+        capture_output=True,
+        text=True,
+    )
     return "FOUND" in result.stdout
 
 
@@ -85,8 +89,8 @@ def process_message(message):
         blob_client.delete_blob()
     else:
         print(f"Clean: {blob_name_in_container}")
-        # blob_client.set_blob_tags({"fsdh-scan-status": "clean"}) 
-        # Set tag (Currently not working for storage accounts that 
+        # blob_client.set_blob_tags({"fsdh-scan-status": "clean"})
+        # Set tag (Currently not working for storage accounts that
         # have hierarchical namespaces enabled. )
 
 
