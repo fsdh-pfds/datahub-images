@@ -1,11 +1,9 @@
 import base64
 import json
-import logging
 import os
 import subprocess
-import uuid
 
-from azure.storage.blob import BlobClient, BlobServiceClient
+from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
 
 
@@ -60,7 +58,7 @@ def process_message(message):
     blob_client = blob_service_client.get_blob_client(
         container=datahub_container_name, blob=blob_name_in_container
     )
-    local_path = f"./blobfile"
+    local_path = "./blobfile"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
 
     if not blob_client.exists():
