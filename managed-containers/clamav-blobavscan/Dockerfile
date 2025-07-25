@@ -23,7 +23,7 @@ RUN python3 -m venv $VIRTUAL_ENV \
  && pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
 
-FROM cgr.dev/chainguard/python:latest AS runtime
+FROM cgr.dev/chainguard/python:latest@sha256:2fa2e1d5396c78a166f4efa26d1661d89629d897d6c71a00c53d951427d2e8c0 AS runtime
 
 ENV DataHub_ENVNAME=dev \   
     AzureTenantId= \
