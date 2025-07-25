@@ -11,7 +11,21 @@ ENV DataHub_ENVNAME=dev \
     quarantine_container_name=datahub-quarantine \
     VIRTUAL_ENV=/opt/venv
 
-RUN apt-get update && apt install -y clamav clamav-daemon curl wget unzip python3-venv && rm -rf /var/lib/apt/lists/*
+# Enable headless mode
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install ca-certificates
+# hadolint ignore=DL3008
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/* 
+
+ARG SNAPSHOT_ID=20250725T145500Z
+RUN echo "APT::Snapshot \"${SNAPSHOT_ID}\";" \
+     > /etc/apt/apt.conf.d/50snapshot
+
+RUN apt-get update && apt-get install -y --no-install-recommends clamav clamav-daemon curl wget unzip python3-venv && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY app/ /app/
 WORKDIR /app
