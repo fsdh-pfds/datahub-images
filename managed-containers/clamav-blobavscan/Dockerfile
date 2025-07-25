@@ -12,7 +12,7 @@ ENV DataHub_ENVNAME=dev \
     VIRTUAL_ENV=/opt/venv
 
 RUN apt-get update && apt install -y clamav clamav-daemon curl wget unzip python3-venv && rm -rf /var/lib/apt/lists/*
-#RUN freshclam
+
 COPY app/ /app/
 WORKDIR /app
 
