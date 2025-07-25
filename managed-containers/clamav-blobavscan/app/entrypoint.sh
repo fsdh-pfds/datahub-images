@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e 
+set -e
 
 touch "$0".start
 freshclam
