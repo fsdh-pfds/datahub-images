@@ -15,9 +15,11 @@ def get_config():
     return {
         "storage_connection_string": os.getenv("storage_connection_string"),
         "queue_name": os.getenv("queue_name") or "virus-scan",
-        "quarantine_container_name": os.getenv("quarantine_container_name") or "datahub-quarantine",
+        "quarantine_container_name": os.getenv("quarantine_container_name")
+        or "datahub-quarantine",
         "datahub_container_name": os.getenv("container_name") or "datahub",
     }
+
 
 config = get_config()
 
@@ -29,6 +31,7 @@ queue_client = QueueClient.from_connection_string(
 blob_service_client = BlobServiceClient.from_connection_string(
     config["storage_connection_string"]
 )
+
 
 def scan_file(file_path):
     result = subprocess.run(
@@ -98,7 +101,7 @@ def main():
             try:
                 process_message(msg)
                 queue_client.delete_message(msg)
-            except Exception as e: # pylint: disable=broad-exception-caught
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 print(f"Error processing message: {e}")
 
 
