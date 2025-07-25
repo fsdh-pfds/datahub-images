@@ -19,7 +19,7 @@ It’s designed to run as a background worker, consuming Azure Storage Queue mes
 
 ## 📂 Project Structure
 
-```
+```none
 managed-containers/clamav-blobavscan/
 ├── Dockerfile             # Builds the container image
 ├── base_packages.list     # OS-level dependencies
