@@ -1,18 +1,7 @@
-FROM python:3.12-bookworm@sha256:645df645815f1403566b103b2a2bb07f6a01516bbb15078ed004e41d198ba194
+FROM python:3.13-bookworm@sha256:645df645815f1403566b103b2a2bb07f6a01516bbb15078ed004e41d198ba194 as build
 
-ENV DataHub_ENVNAME=dev \   
-    AzureTenantId= \
-    AzureSubscriptionId= \
-    AzureWebJobsFeatureFlags=EnableWorkerIndexing \
-    AzureWebJobsDashboard= \
-    storage_connection_string= \
-    queue_name=blob-created \
-    container_name=datahub \
-    quarantine_container_name=datahub-quarantine \
-    VIRTUAL_ENV=/opt/venv
-
-# Enable headless mode
-ENV DEBIAN_FRONTEND=noninteractive
+ENV VIRTUAL_ENV=/opt/venv \
+    DEBIAN_FRONTEND=noninteractive
 
 # Install ca-certificates
 # hadolint ignore=DL3008
@@ -33,5 +22,23 @@ WORKDIR /app
 RUN python3 -m venv $VIRTUAL_ENV \
  && pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
+
+FROM cgr.dev/chainguard/python:latest AS runtime
+
+ENV DataHub_ENVNAME=dev \   
+    AzureTenantId= \
+    AzureSubscriptionId= \
+    AzureWebJobsFeatureFlags=EnableWorkerIndexing \
+    AzureWebJobsDashboard= \
+    storage_connection_string= \
+    queue_name=blob-created \
+    container_name=datahub \
+    quarantine_container_name=datahub-quarantine \
+    VIRTUAL_ENV=/opt/venv
+
+COPY --from=build /opt/venv /opt/venv
+COPY --from=build /app /app
+
+WORKDIR /app
 
 CMD ["bash", "/app/entrypoint.sh"]
