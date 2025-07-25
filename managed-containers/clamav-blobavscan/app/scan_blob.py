@@ -1,4 +1,7 @@
 # pylint: disable=missing-module-docstring
+# pylint: disable=missing-function-docstring
+# pylint: disable=import-error
+
 import base64
 import json
 import os
@@ -27,14 +30,12 @@ blob_service_client = BlobServiceClient.from_connection_string(
     config["storage_connection_string"]
 )
 
-
-
-
 def scan_file(file_path):
     result = subprocess.run(
         ["clamscan", file_path],
         capture_output=True,
         text=True,
+        check=False,
     )
     return "FOUND" in result.stdout
 
@@ -48,13 +49,13 @@ def process_message(message):
     blob_name_in_container = "/".join(blob_name_parts[5:])
     print("processing blob: " + blob_name_full)
 
-    if datahub_container_name.lower() != blob_name_container:
+    if config["datahub_container_name"].lower() != blob_name_container:
         print("skipping blob not in target container: " + blob_name_full)
         return
 
     # Download blob
     blob_client = blob_service_client.get_blob_client(
-        container=datahub_container_name, blob=blob_name_in_container
+        container=config["datahub_container_name"], blob=blob_name_in_container
     )
     local_path = "./blobfile"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
@@ -76,7 +77,7 @@ def process_message(message):
 
         # Move to infected container
         infected_blob_client = blob_service_client.get_blob_client(
-            container=quarantine_container_name, blob=blob_name_in_container
+            container=config["quarantine_container_name"], blob=blob_name_in_container
         )
         with open(local_path, "rb") as data:
             infected_blob_client.upload_blob(data, overwrite=True)
@@ -97,7 +98,7 @@ def main():
             try:
                 process_message(msg)
                 queue_client.delete_message(msg)
-            except Exception as e:
+            except Exception as e: # pylint: disable=broad-exception-caught
                 print(f"Error processing message: {e}")
 
 
