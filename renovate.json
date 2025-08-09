@@ -1,5 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices"],
-  "local>managed-containers/clamav-blobavscan/renovate.json"
+  "extends": ["config:best-practices"]
 }
