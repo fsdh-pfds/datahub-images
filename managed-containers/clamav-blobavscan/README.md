@@ -8,13 +8,13 @@ It’s designed to run as a background worker, consuming Azure Storage Queue mes
 
 ## ✨ Features
 
-* ✅ **Antivirus scanning with ClamAV**
-* ✅ **Azure Blob Storage integration** (download & upload blobs)
-* ✅ **Azure Queue integration** (consume messages about new blobs)
-* ✅ **Automatic quarantining** of infected files
-* ✅ **Configurable via environment variables**
-* ✅ **Lightweight container image built on Ubuntu 24.04**
-* ✅ **Pinned to amd64 architecture** for consistent builds
+- ✅ **Antivirus scanning with ClamAV**
+- ✅ **Azure Blob Storage integration** (download & upload blobs)
+- ✅ **Azure Queue integration** (consume messages about new blobs)
+- ✅ **Automatic quarantining** of infected files
+- ✅ **Configurable via environment variables**
+- ✅ **Lightweight container image built on Ubuntu 24.04**
+- ✅ **Pinned to amd64 architecture** for consistent builds
 
 ---
 
@@ -47,7 +47,7 @@ managed-containers/clamav-blobavscan/
 
 | Variable                    | Description                               | Default              |
 | --------------------------- | ----------------------------------------- | -------------------- |
-| `storage_connection_string` | Azure Storage connection string           | *required*           |
+| `storage_connection_string` | Azure Storage connection string           | _required_           |
 | `queue_name`                | Queue name containing blob events         | `blob-created`       |
 | `container_name`            | Name of the container with incoming blobs | `datahub`            |
 | `quarantine_container_name` | Name of the quarantine container          | `datahub-quarantine` |
@@ -80,8 +80,8 @@ docker run --platform linux/amd64 --rm \
 
 The container will:
 
-* Update ClamAV definitions (`freshclam`)
-* Start scanning queued blob events
+- Update ClamAV definitions (`freshclam`)
+- Start scanning queued blob events
 
 ---
 
@@ -89,14 +89,14 @@ The container will:
 
 This scanner is designed for:
 
-* **Azure Functions** with custom containers
-* **Kubernetes** as a worker pod
-* **Standalone container execution**
+- **Azure Functions** with custom containers
+- **Kubernetes** as a worker pod
+- **Standalone container execution**
 
 Requirements:
 
-* An **Azure Storage Queue** receiving blob event notifications
-* Proper IAM/Access keys for the container to access blob storage
+- An **Azure Storage Queue** receiving blob event notifications
+- Proper IAM/Access keys for the container to access blob storage
 
 ---
 
@@ -106,18 +106,18 @@ Requirements:
 
 Defined in `base_packages.list`, including:
 
-* **ClamAV**
-* **curl / wget / unzip**
-* **Python3 + venv**
+- **ClamAV**
+- **curl / wget / unzip**
+- **Python3 + venv**
 
 ### Python Dependencies
 
 From `requirements.txt`:
 
-* `azure-storage-blob`
-* `azure-storage-queue`
-* `azure-identity`
-* `azure-keyvault`
+- `azure-storage-blob`
+- `azure-storage-queue`
+- `azure-identity`
+- `azure-keyvault`
 
 ---
 
@@ -141,11 +141,12 @@ python3 scan_blob.py
 
 ## ⚠️ Notes on Reproducibility
 
-* **Base Image Digest** — To update the pinned digest:
+- **Base Image Digest** — To update the pinned digest:
 
   ```bash
   docker buildx imagetools inspect ubuntu:24.04 | grep amd64
   ```
 
   Replace the digest in the Dockerfile with the latest amd64 SHA.
-* **APT Snapshotting** — (`APT::Snapshot`) to lock package versions in time.
+
+- **APT Snapshotting** — (`APT::Snapshot`) to lock package versions in time.
