@@ -1,18 +1,21 @@
-name: "JFrog OIDC Example"
+name: "JFrog Frogbot OIDC Example"
 on:
+  pull_request_target: 
+    types: [opened, synchronize] 
   workflow_dispatch:
 
 permissions:
-  id-token: write 
-  contents: read
+  pull-requests: write
+  contents: write
+  security-events: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        branch: ["main"]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
       - name: Configure JFrog CLI via OIDC
         uses: jfrog/setup-jfrog-cli@v4
         env:
@@ -21,18 +24,10 @@ jobs:
         with:
           oidc-provider-name: github-oidc
 
-      - name: Run JFrog CLI commands
+      - uses: jfrog/frogbot@v2
+        with:
+          oidc-provider-name: github-oidc
         env:
           JF_URL: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
-        run: |
-          # Test the connection
-          jf rt ping
-
-          # (Optional) Collect build environment variables
-          jf rt bce
-
-          # (Optional) Collect VCS details from git
-          jf rt bag
-
-
-          
+          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JF_GIT_BASE_BRANCH: ${{ matrix.branch }}   
