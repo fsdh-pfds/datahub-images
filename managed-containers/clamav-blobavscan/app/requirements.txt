@@ -1,0 +1,4 @@
+azure-storage-queue
+azure-storage-blob
+azure-identity==1.*
+azure-keyvault==4.*
