@@ -60,7 +60,9 @@ def process_message(message):
     blob_client = blob_service_client.get_blob_client(
         container=config["datahub_container_name"], blob=blob_name_in_container
     )
-    local_path = config["WORK_DIR"] + "blobfile"
+
+    local_work_dir = config["WORK_DIR"] if os.path.isdir(config["WORK_DIR"]) and os.access(config["WORK_DIR"], os.W_OK) else "/tmp"
+    local_path = local_work_dir + "blobfile"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
 
     if not blob_client.exists():
