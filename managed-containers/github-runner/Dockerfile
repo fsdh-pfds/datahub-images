@@ -6,6 +6,7 @@ ARG DOCKER_VERSION=28.3.2
 ARG BUILDX_VERSION=0.26.1
 
 # Minimal tools
+# hadolint ignore=DL3008
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends ca-certificates curl unzip \
     && rm -rf /var/lib/apt/lists/*
