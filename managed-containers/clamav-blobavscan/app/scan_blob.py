@@ -15,9 +15,9 @@ def get_config():
     return {
         "storage_connection_string": os.getenv("storage_connection_string"),
         "queue_name": os.getenv("queue_name") or "virus-scan",
-        "quarantine_container_name": os.getenv("quarantine_container_name")
-        or "datahub-quarantine",
+        "quarantine_container_name": os.getenv("quarantine_container_name") or "datahub-quarantine",
         "datahub_container_name": os.getenv("container_name") or "datahub",
+        "WORK_DIR": os.getenv("WORK_DIR") or "/datahub-temp",
     }
 
 
@@ -60,7 +60,7 @@ def process_message(message):
     blob_client = blob_service_client.get_blob_client(
         container=config["datahub_container_name"], blob=blob_name_in_container
     )
-    local_path = "./blobfile"
+    local_path = config["WORK_DIR"] + "blobfile"
     os.makedirs(os.path.dirname(local_path), exist_ok=True)
 
     if not blob_client.exists():
