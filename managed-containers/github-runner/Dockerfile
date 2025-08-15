@@ -1,17 +1,11 @@
-FROM ubuntu:24.04@sha256:a08e551cb33850e4740772b38217fc1796a66da2506d312abe51acda354ff061 AS build
+FROM curlimages/curl AS downloader
 
 ARG RUNNER_VERSION=2.327.1
 ARG RUNNER_CONTAINER_HOOKS_VERSION=0.7.0
 ARG DOCKER_VERSION=28.3.2
 ARG BUILDX_VERSION=0.26.1
 
-# Minimal tools
-# hadolint ignore=DL3008
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends ca-certificates curl unzip \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /actions-runner
+WORKDIR /tmp/actions-runner
 
 # Actions Runner (linux + x64 only)
 RUN curl -fsSL -o runner.tar.gz \
@@ -19,15 +13,21 @@ RUN curl -fsSL -o runner.tar.gz \
     && tar xzf runner.tar.gz \
     && rm runner.tar.gz
 
-# Docker Engine static binaries (x86_64) + buildx (linux-amd64)
+WORKDIR /tmp/docker
+
+# Docker Engine static binaries (x86_64)
 RUN curl -fsSL -o docker.tgz \
     "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz" \
     && tar xzf docker.tgz \
-    && rm docker.tgz \
-    && mkdir -p /usr/local/lib/docker/cli-plugins \
-    && curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-buildx \
+    && rm docker.tgz
+
+WORKDIR /tmp/buildx
+
+# Buildx (linux-amd64)
+RUN curl -fsSL -o docker-buildx \
     "https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-amd64" \
-    && chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+    && chmod +x docker-buildx
+
 
 FROM ubuntu:24.04@sha256:a08e551cb33850e4740772b38217fc1796a66da2506d312abe51acda354ff061
 
@@ -43,7 +43,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
-COPY entrypoint.sh /entrypoint.sh
 
 # Install ca-certificates
 # hadolint ignore=DL3008
@@ -78,20 +77,22 @@ RUN apt-get update && \
     xargs -a /tmp/addon_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Create runner user and set permissions    
 RUN adduser --disabled-password --gecos "" --uid 1001 runner \
     && groupadd docker --gid 123 \
-    && usermod -aG sudo runner \
-    && usermod -aG docker runner \
-    && echo "%sudo   ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers \
-    && echo "Defaults env_keep += \"DEBIAN_FRONTEND\"" >> /etc/sudoers
+    && usermod -aG sudo,docker runner \
+    && echo "%sudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/99-runner \
+    && echo "Defaults env_keep += \"DEBIAN_FRONTEND\"" >> /etc/sudoers.d/99-runner \
+    && chmod 440 /etc/sudoers.d/99-runner
 
 WORKDIR /home/runner
 
-COPY --chown=runner:docker --from=build /actions-runner .
-COPY --from=build /usr/local/lib/docker/cli-plugins/docker-buildx /usr/local/lib/docker/cli-plugins/docker-buildx
+COPY --chown=runner:docker entrypoint.sh .
+COPY --chown=runner:docker --from=downloader  /tmp/actions-runner .
+COPY --from=downloader /tmp/buildx/docker-buildx /usr/bin/
+COPY --from=downloader /tmp/docker/* /usr/bin/
 
-RUN install -o root -g root -m 755 docker/* /usr/bin/ && rm -rf docker
 
 # Switch to unprivileged user and set entrypoint
 USER runner
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
