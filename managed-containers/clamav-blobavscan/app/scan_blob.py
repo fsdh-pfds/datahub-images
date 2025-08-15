@@ -41,7 +41,7 @@ def scan_file(file_path):
         text=True,
         check=False,
     )
-    return "FOUND" in result.stdout
+    return "THREAT FOUND" in result.stdout
 
 
 def process_message(message):
@@ -51,10 +51,10 @@ def process_message(message):
     blob_name_parts = blob_name_full.strip("/").split("/")
     blob_name_container = blob_name_parts[3]
     blob_name_in_container = "/".join(blob_name_parts[5:])
-    print("processing blob: " + blob_name_full)
+    print("FSDH - processing blob: " + blob_name_full)
 
     if config["datahub_container_name"].lower() != blob_name_container:
-        print("skipping blob not in target container: " + blob_name_full)
+        print("FSDH - skipping blob not in target container: " + blob_name_full)
         return
 
     # Download blob
@@ -67,11 +67,12 @@ def process_message(message):
         if os.path.isdir(config["WORK_DIR"]) and os.access(config["WORK_DIR"], os.W_OK)
         else "/tmp"
     )
-    local_path = local_work_dir + "blobfile"
-    os.makedirs(os.path.dirname(local_path), exist_ok=True)
+    local_path = local_work_dir + os.sep + "blobfile"
+    os.makedirs(os.path.dirname(local_work_dir), exist_ok=True)
+    print("FSDH - ClamAV working directory: " + local_work_dir)
 
     if not blob_client.exists():
-        print(f"Not foud: {blob_name_in_container} at {blob_url}")
+        print(f"FSDH - blob Not foud: {blob_name_in_container} at {blob_url}")
         return
 
     with open(local_path, "wb") as f:
@@ -79,7 +80,7 @@ def process_message(message):
 
     # Scan file (test file name please include "clamavtest2025a" )
     if scan_file(local_path) or "clamavtest2025a" in blob_name_in_container:
-        print(f"Infected: {blob_name_in_container} at {blob_url}")
+        print(f"FSDH - Infected blob: {blob_name_in_container} at {blob_url}")
 
         # Set tag (Currently not working for storage accounts that
         # have hierarchical namespaces enabled. )
@@ -93,7 +94,7 @@ def process_message(message):
             infected_blob_client.upload_blob(data, overwrite=True)
         blob_client.delete_blob()
     else:
-        print(f"Clean: {blob_name_in_container}")
+        print(f"FSDH - blob is clean: {blob_name_in_container}")
         # blob_client.set_blob_tags({"fsdh-scan-status": "clean"})
         # Set tag (Currently not working for storage accounts that
         # have hierarchical namespaces enabled. )
@@ -109,7 +110,7 @@ def main():
                 process_message(msg)
                 queue_client.delete_message(msg)
             except Exception as e:  # pylint: disable=broad-exception-caught
-                print(f"Error processing message: {e}")
+                print(f"FSDH - Error processing message: {e}")
 
 
 if __name__ == "__main__":
