@@ -19,7 +19,7 @@ RUN /opt/conda/bin/conda init bash \
     && find /opt/conda/ -follow -type f -name '*.pyc' -delete  
 
 # Final image to run the application, starting with a minimal Python image
-FROM cgr.dev/chainguard/python@sha256:52820d1718fe1263cb8459cf7db1b136bcdf4758ac7f6dff7599d309ebd3eaf8 AS final
+FROM cgr.dev/chainguard/python@sha256:d409289a0684e02b95c10b586048c465f4032bc31b4055f59f38a73f914e7537 AS final
 
 # Set environment variables for the application
 ENV LANG=C.UTF-8 \  
