@@ -21,7 +21,8 @@ ENV DataHub_ENVNAME=dev \
     container_name=datahub \
     quarantine_container_name=datahub-quarantine \
     DEBIAN_FRONTEND=noninteractive \
-    VIRTUAL_ENV=/opt/venv
+    VIRTUAL_ENV=/opt/venv \
+    WORK_DIR=/datahub-temp
 
 # Install ca-certificates
 # hadolint ignore=DL3008
