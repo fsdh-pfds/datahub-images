@@ -1,4 +1,4 @@
-FROM curlimages/curl AS downloader
+FROM curlimages/curl:latest@sha256:4026b29997dc7c823b51c164b71e2b51e0fd95cce4601f78202c513d97da2922 AS downloader
 
 ARG RUNNER_VERSION=2.327.1
 ARG RUNNER_CONTAINER_HOOKS_VERSION=0.7.0
@@ -35,6 +35,8 @@ LABEL org.opencontainers.image.description="ADO Linux (ubuntu) Self‑Hosted Run
 LABEL org.opencontainers.image.source="https://github.com/fsdh-pfds/datahub-images"
 LABEL org.opencontainers.image.url="https://github.com/fsdh-pfds/datahub-images/blob/main/managed-containers/ado-az-tf-pwsh-runner/README.md"
 
+ARG SNAPSHOT_ID=20250725T181600Z
+
 # Enable headless mode
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_MANUALLY_TRAP_SIG=1 \
@@ -51,7 +53,6 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/* 
 
 # apt-get shapshot id
-ARG SNAPSHOT_ID=20250725T181600Z
 RUN echo "APT::Snapshot \"${SNAPSHOT_ID}\";" \
      > /etc/apt/apt.conf.d/50snapshot
 
