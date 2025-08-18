@@ -13,7 +13,7 @@ from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
 
 
-CHUNK_SIZE = 1 * 1024 * 1024 * 1024  # 2GB in bytes
+CHUNK_SIZE = 1 * 1024 * 1024 * 1024
 
 
 def get_config():
