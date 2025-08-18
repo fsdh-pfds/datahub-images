@@ -13,6 +13,9 @@ from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
 
 
+CHUNK_SIZE = 1 * 1024 * 1024 * 1024  # 2GB in bytes
+
+
 def get_config():
     return {
         "storage_connection_string": os.getenv("storage_connection_string"),
@@ -66,35 +69,52 @@ def process_message(message):
     if not blob_client.exists():
         print(f"FSDH - blob Not foud: {blob_name_in_container} at {blob_url}")
         return
-        
+
     stream = io.BytesIO()
-    blob_client.download_blob().readinto(stream)
-    stream.seek(0)
+    blob_size = blob_client.get_blob_properties().size
+    chunk_start = 0
+    chunk_index = 0
 
-    clamav_socket = clamd.ClamdNetworkSocket(host='localhost', port=3310)
-    print("FSDH - scanning over network: " + blob_name_full)
-    result = clamav_socket.instream(stream)
-    print("FSDH - scan completed: " + blob_name_full)
-
-    status, virus_name = result['stream']
-    if  status == 'FOUND' or "clamavtest2025a" in blob_name_in_container:
-        print(f"FSDH - Infected blob: {blob_name_in_container} at {blob_url}" + virus_name)
-
-        # Set tag (Currently not working for storage accounts that
-        # have hierarchical namespaces enabled. )
-        # blob_client.set_blob_tags({"fsdh-scan-status": "failed"})
-
-        # Move to infected container
-        infected_blob_client = blob_service_client.get_blob_client(
-            container=config["quarantine_container_name"], blob=blob_name_in_container
+    while chunk_start < blob_size:
+        chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
+        print(
+            f"FSDH - Downloading chunk {chunk_index}: bytes {chunk_start} to {chunk_end}"
         )
-        infected_blob_client.upload_blob(stream, overwrite=True)
-        blob_client.delete_blob()
-    else:
-        print(f"FSDH - blob is clean: {blob_name_in_container}")
-        # blob_client.set_blob_tags({"fsdh-scan-status": "clean"})
-        # Set tag (Currently not working for storage accounts that
-        # have hierarchical namespaces enabled. )
+
+        stream.seek(0)
+        stream.truncate(0)
+        blob_client.download_blob(
+            offset=chunk_start, length=chunk_end - chunk_start + 1
+        ).readinto(stream)
+
+        clamav_socket = clamd.ClamdNetworkSocket(host="localhost", port=3310)
+        print(
+            "FSDH - scanning over network: " + blob_name_full + f" chunk {chunk_index}"
+        )
+        result = clamav_socket.instream(stream)
+        print("FSDH - scan completed: " + blob_name_full + f" chunk {chunk_index}")
+
+        status, virus_name = result["stream"]
+        if status == "FOUND" or "clamavtest2025a" in blob_name_in_container:
+            blob_client.delete_blob()
+            print(
+                f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus_name}"
+            )
+
+            # Create marker in infected container
+            infected_blob_client = blob_service_client.get_blob_client(
+                container=config["quarantine_container_name"],
+                blob=blob_name_in_container,
+            )
+            infected_blob_client.upload_blob(
+                io.BytesIO("This file was deleted by FSDH virus scan".encode("utf-8")),
+                overwrite=True,
+            )
+        else:
+            print(f"FSDH - blob chunk {chunk_index} is clean: {blob_name_in_container}")
+
+        chunk_start += CHUNK_SIZE
+        chunk_index += 1
 
 
 def main():
