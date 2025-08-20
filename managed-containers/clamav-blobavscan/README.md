@@ -39,7 +39,7 @@ managed-containers/clamav-blobavscan/
 2. The container downloads the blob from Azure Blob Storage to a temporary location.
 3. ClamAV scans the blob.
 4. If clean ✅ → the blob remains in its original container.
-5. If infected ❌ → the blob is moved to a quarantine container.
+5. If infected ❌ → the blob is deleted and a plain text with the same blob name is created in the quarantine container (TBD).
 
 ---
 
