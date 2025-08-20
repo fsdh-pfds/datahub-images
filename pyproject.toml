@@ -1,0 +1,12 @@
+[tool.black]
+line-length = 120
+# Optional, if you want to skip common build/venv dirs
+extend-exclude = '''
+/(
+  \.venv
+ | venv
+ | build
+ | dist
+ | \.mypy_cache
+)/
+'''
