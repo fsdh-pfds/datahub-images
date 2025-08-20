@@ -3,15 +3,14 @@
 # pylint: disable=import-error
 
 import base64
+import io
 import json
 import os
 import subprocess
-import io
-import clamd
 
+import clamd
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
-
 
 CHUNK_SIZE = 1 * 1024 * 1024 * 1024
 
@@ -20,8 +19,7 @@ def get_config():
     return {
         "storage_connection_string": os.getenv("storage_connection_string"),
         "queue_name": os.getenv("queue_name") or "virus-scan",
-        "quarantine_container_name": os.getenv("quarantine_container_name")
-        or "datahub-quarantine",
+        "quarantine_container_name": os.getenv("quarantine_container_name") or "datahub-quarantine",
         "datahub_container_name": os.getenv("container_name") or "datahub",
         "WORK_DIR": os.getenv("WORK_DIR") or "/datahub-temp",
     }
@@ -34,9 +32,7 @@ queue_client = QueueClient.from_connection_string(
     queue_name=config["queue_name"],
 )
 
-blob_service_client = BlobServiceClient.from_connection_string(
-    config["storage_connection_string"]
-)
+blob_service_client = BlobServiceClient.from_connection_string(config["storage_connection_string"])
 
 
 def scan_file(file_path):
@@ -77,29 +73,21 @@ def process_message(message):
 
     while chunk_start < blob_size:
         chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
-        print(
-            f"FSDH - Downloading chunk {chunk_index}: bytes {chunk_start} to {chunk_end}"
-        )
+        print(f"FSDH - Downloading chunk {chunk_index}: bytes {chunk_start} to {chunk_end}")
 
         stream.seek(0)
         stream.truncate(0)
-        blob_client.download_blob(
-            offset=chunk_start, length=chunk_end - chunk_start + 1
-        ).readinto(stream)
+        blob_client.download_blob(offset=chunk_start, length=chunk_end - chunk_start + 1).readinto(stream)
 
         clamav_socket = clamd.ClamdNetworkSocket(host="localhost", port=3310)
-        print(
-            "FSDH - scanning over network: " + blob_name_full + f" chunk {chunk_index}"
-        )
+        print("FSDH - scanning over network: " + blob_name_full + f" chunk {chunk_index}")
         result = clamav_socket.instream(stream)
         print("FSDH - scan completed: " + blob_name_full + f" chunk {chunk_index}")
 
         status, virus_name = result["stream"]
         if status == "FOUND" or "clamavtest2025a" in blob_name_in_container:
             blob_client.delete_blob()
-            print(
-                f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus_name}"
-            )
+            print(f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus_name}")
 
             # Create marker in infected container
             infected_blob_client = blob_service_client.get_blob_client(
@@ -107,7 +95,10 @@ def process_message(message):
                 blob=blob_name_in_container,
             )
             infected_blob_client.upload_blob(
-                io.BytesIO("This file was removed by FSDH due to potential threat | Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")),
+                io.BytesIO(
+                    "This file was removed by FSDH due to potential threat | "
+                    "Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")
+                ),
                 overwrite=True,
             )
         else:
@@ -118,9 +109,7 @@ def process_message(message):
 
 
 def main():
-    messages = queue_client.receive_messages(
-        messages_per_page=10, visibility_timeout=14400
-    )
+    messages = queue_client.receive_messages(messages_per_page=10, visibility_timeout=14400)
     for msg_batch in messages.by_page():
         for msg in msg_batch:
             try:
