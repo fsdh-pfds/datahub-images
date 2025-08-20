@@ -96,9 +96,8 @@ def process_message(message):
             )
             infected_blob_client.upload_blob(
                 io.BytesIO(
-                    "This file was removed by FSDH due to potential threat | Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode(
-                        "utf-8"
-                    )
+                    "This file was removed by FSDH due to potential threat |"
+                    " Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")
                 ),
                 overwrite=True,
             )
