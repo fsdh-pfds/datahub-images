@@ -1,2 +1,18 @@
 [flake8]
+# Keep in lockstep with pylint and black
 max-line-length = 120
+
+# Avoid clashes with Black's formatting rules
+extend-ignore =
+    E203,  # whitespace before ':'
+    W503   # line break before binary operator
+
+# Skip non-source dirs
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv,
+    venv,
+    .mypy_cache

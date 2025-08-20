@@ -1,2 +1,25 @@
+[MASTER]
+ignore = .git,__pycache__,build,dist,.venv,venv,.mypy_cache
+
+[MESSAGES CONTROL]
+# Trim the noisiest overlaps; keep C0301 enabled to enforce 120 cols
+disable =
+    C0114,  # missing-module-docstring
+    C0115,  # missing-class-docstring
+    C0116,  # missing-function-docstring
+    R0903,  # too-few-public-methods
+    R0801   # duplicate-code
+
 [FORMAT]
 max-line-length = 120
+
+[DESIGN]
+# Reasonable thresholds to reduce false positives without being lax
+max-locals = 20
+max-args = 10
+max-branches = 12
+max-statements = 50
+
+[REPORTS]
+reports = no
+score = yes
