@@ -4,10 +4,12 @@ max-line-length = 120
 
 # Avoid clashes with Black's formatting rules
 extend-ignore =
-    E203,  # whitespace before ':'
-    W503   # line break before binary operator
+    # whitespace before ':'
+    E203,  
+    # line break before binary operator
+    W503
 
-# Skip non-source dirs
+# Skip non-source dir
 exclude =
     .git,
     __pycache__,
