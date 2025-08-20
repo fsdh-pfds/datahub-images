@@ -1,0 +1,31 @@
+[tool.black]
+line-length = 120
+# Optional, if you want to skip common build/venv dirs
+extend-exclude = '''
+/(
+  \.venv
+ | venv
+ | build
+ | dist
+ | \.mypy_cache
+)/
+'''
+
+[tool.pyink]
+# Match Flake8 and Pylint
+line-length = 120
+
+# Pyink-specific options
+pyink-indentation = 4               # standard Python indentation
+pyink-split-before-named-assignment = true
+
+# Optional: exclude same dirs as Black
+extend-exclude = '''
+/(
+  \.venv
+ | venv
+ | build
+ | dist
+ | \.mypy_cache
+)/
+'''
