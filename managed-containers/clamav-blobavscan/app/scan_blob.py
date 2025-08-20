@@ -3,15 +3,14 @@
 # pylint: disable=import-error
 
 import base64
+import io
 import json
 import os
 import subprocess
-import io
-import clamd
 
+import clamd
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
-
 
 CHUNK_SIZE = 1 * 1024 * 1024 * 1024
 
@@ -107,7 +106,11 @@ def process_message(message):
                 blob=blob_name_in_container,
             )
             infected_blob_client.upload_blob(
-                io.BytesIO("This file was removed by FSDH due to potential threat | Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")),
+                io.BytesIO(
+                    "This file was removed by FSDH due to potential threat | Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode(
+                        "utf-8"
+                    )
+                ),
                 overwrite=True,
             )
         else:
