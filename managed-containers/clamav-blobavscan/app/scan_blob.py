@@ -15,8 +15,7 @@ def get_config():
     return {
         "storage_connection_string": os.getenv("storage_connection_string"),
         "queue_name": os.getenv("queue_name") or "virus-scan",
-        "quarantine_container_name": os.getenv("quarantine_container_name")
-        or "datahub-quarantine",
+        "quarantine_container_name": os.getenv("quarantine_container_name") or "datahub-quarantine",
         "datahub_container_name": os.getenv("container_name") or "datahub",
     }
 
@@ -28,9 +27,7 @@ queue_client = QueueClient.from_connection_string(
     queue_name=config["queue_name"],
 )
 
-blob_service_client = BlobServiceClient.from_connection_string(
-    config["storage_connection_string"]
-)
+blob_service_client = BlobServiceClient.from_connection_string(config["storage_connection_string"])
 
 
 def scan_file(file_path):
@@ -93,9 +90,7 @@ def process_message(message):
 
 
 def main():
-    messages = queue_client.receive_messages(
-        messages_per_page=10, visibility_timeout=14400
-    )
+    messages = queue_client.receive_messages(messages_per_page=10, visibility_timeout=14400)
     for msg_batch in messages.by_page():
         for msg in msg_batch:
             try:
