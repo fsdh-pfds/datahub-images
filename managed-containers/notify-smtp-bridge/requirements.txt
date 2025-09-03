@@ -1,0 +1,5 @@
+aiosmtpd==1.4.6
+mail-parser==4.1.4
+html-to-markdown==1.9.0
+requests==2.32.4
+notifications-python-client==10.0.1
