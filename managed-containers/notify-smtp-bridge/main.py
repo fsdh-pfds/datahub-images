@@ -51,7 +51,6 @@ class NotifyHandler:
         if not subject or not body:
             return "550 Invalid email content"
 
-        errors = 0
         try:
             for to in recipients:
                 to = to.strip()
@@ -69,14 +68,15 @@ class NotifyHandler:
                     print(f"Relayed email to Slack for {to}")
 
                 if notifications_client and NOTIFY_TEMPLATE_ID:
-                    response = notifications_client.send_email_notification(
-                        email_address=to,
-                        template_id=NOTIFY_TEMPLATE_ID,
-                        personalisation={
-                            "subject": subject,
-                            "body": body,
-                        },
-                    )
+                    notifications_client.send_email_notification(
+                                email_address=to,
+                                template_id=NOTIFY_TEMPLATE_ID,
+                                personalisation={
+                                    "subject": subject,
+                                    "body": body,
+                                },
+                            )
+
                     print(f"Relayed email to {to} via GOV.UK Notify")
 
             return "250 Message accepted"

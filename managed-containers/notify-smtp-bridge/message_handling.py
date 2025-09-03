@@ -1,4 +1,3 @@
-import json
 import re
 from bs4 import BeautifulSoup
 from html_to_markdown import convert_to_markdown
