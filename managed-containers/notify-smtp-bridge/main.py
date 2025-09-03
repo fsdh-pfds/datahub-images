@@ -69,13 +69,13 @@ class NotifyHandler:
 
                 if notifications_client and NOTIFY_TEMPLATE_ID:
                     notifications_client.send_email_notification(
-                                email_address=to,
-                                template_id=NOTIFY_TEMPLATE_ID,
-                                personalisation={
-                                    "subject": subject,
-                                    "body": body,
-                                },
-                            )
+                        email_address=to,
+                        template_id=NOTIFY_TEMPLATE_ID,
+                        personalisation={
+                            "subject": subject,
+                            "body": body,
+                        },
+                    )
 
                     print(f"Relayed email to {to} via GOV.UK Notify")
 
