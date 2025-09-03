@@ -1,6 +1,6 @@
 import json
 import re
-
+from bs4 import BeautifulSoup
 from html_to_markdown import convert_to_markdown
 from mailparser import parse_from_bytes
 
@@ -18,7 +18,11 @@ def parse_email(eml: bytes):
         html = "".join(parsed.text_html)
         html = re.sub(r"<br\s*\/?>", "<br/>", html)
         html = re.sub(r"<style>[\s\S]*?</style>", "", html, flags=re.DOTALL)
-        html = re.sub(r"<script[^>]*>[\s\S]*?<\/script>", "", html, flags=re.DOTALL)
+        # Remove all script tags using BeautifulSoup (handles malformed tags & case)
+        soup = BeautifulSoup(html, "html.parser")
+        for script in soup.find_all("script"):
+            script.decompose()
+        html = str(soup)
         html = html.replace("<table", "<br/><br/><table")
         html = html.replace("</table>", "</table><br/>")
         body_markdown = convert_to_markdown(
