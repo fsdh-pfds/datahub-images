@@ -1,12 +1,11 @@
+import ipaddress
 import os
 import time
+
 import requests
-import ipaddress
-
 from aiosmtpd.controller import Controller
-from notifications_python_client.notifications import NotificationsAPIClient
-
 from message_handling import parse_email
+from notifications_python_client.notifications import NotificationsAPIClient
 
 SMTP_HOSTNAME = os.getenv("SMTP_HOSTNAME", "127.0.0.1")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))
@@ -14,18 +13,12 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))
 NOTIFY_API_KEY = os.getenv("NOTIFY_API_KEY", None)
 NOTIFY_TEMPLATE_ID = os.getenv("NOTIFY_TEMPLATE_ID", None)
 
-NOTIFY_BASE_URL = os.getenv(
-    "NOTIFY_BASE_URL",
-    "https://api.notifications.service.gov.uk"
-)
+NOTIFY_BASE_URL = os.getenv("NOTIFY_BASE_URL", "https://api.notifications.service.gov.uk")
 
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", None)
 
-notifications_client = (
-    NotificationsAPIClient(NOTIFY_API_KEY, base_url=NOTIFY_BASE_URL)
-    if NOTIFY_API_KEY
-    else None
-)
+notifications_client = NotificationsAPIClient(NOTIFY_API_KEY, base_url=NOTIFY_BASE_URL) if NOTIFY_API_KEY else None
+
 
 def is_private_ip(ip):
     if not ip:
@@ -35,6 +28,7 @@ def is_private_ip(ip):
         return addr.is_private or addr.is_loopback or addr.is_link_local
     except ValueError:
         return False
+
 
 class NotifyHandler:
     async def handle_DATA(self, server, session, envelope):
@@ -69,12 +63,11 @@ class NotifyHandler:
                         "to": to,
                         "subject": subject,
                         "body": body,
-
                     }
                     r = requests.post(SLACK_WEBHOOK_URL, json=slack_payload)
                     r.raise_for_status()
                     print(f"Relayed email to Slack for {to}")
-                    
+
                 if notifications_client and NOTIFY_TEMPLATE_ID:
                     response = notifications_client.send_email_notification(
                         email_address=to,
@@ -82,7 +75,7 @@ class NotifyHandler:
                         personalisation={
                             "subject": subject,
                             "body": body,
-                        }
+                        },
                     )
                     print(f"Relayed email to {to} via GOV.UK Notify")
 

@@ -1,6 +1,6 @@
+import os
 import socket
 import sys
-import os
 
 SMTP_HOST_HEALTHCHECK = os.getenv("SMTP_HOST_HEALTHCHECK", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))
