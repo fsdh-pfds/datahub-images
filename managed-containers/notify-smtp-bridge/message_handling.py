@@ -1,67 +1,86 @@
-# pylint: disable=broad-exception-caught
 import re
+from typing import Any
 
 from bs4 import BeautifulSoup
 from html_to_markdown import convert_to_markdown
 from mailparser import parse_from_bytes
 
 
-def parse_email(eml: bytes):
+def parse_email(eml: bytes) -> dict[str, Any]:
     """
-    Parse a raw RFC-822 email and return recipients, subject, body (as Markdown/plain),
-    and message_id for downstream idempotency/reference.
+    Parse a raw RFC-822 email and return:
+      - recipients: list[str]
+      - subject: str
+      - body: str (Markdown if HTML was present, else plain text)
+      - message_id: str | None
     """
-    response = {
-        "recipients": [],
-        "subject": "",
-        "body": "",
-        "message_id": None,  # NEW: expose Message-ID for Notify `reference`
-    }
+    recipients: list[str] = []
+    subject: str = ""
+    body: str = ""
+    message_id: str | None = None
 
     parsed = parse_from_bytes(eml)
-    response["message_id"] = (parsed.message_id or "").strip() or None  # NEW
+    message_id = (parsed.message_id or "").strip() or None
 
+    # Prefer HTML -> Markdown; fall back to plain text
     if parsed.text_html:
         html = "".join(parsed.text_html)
 
-        # Normalize common broken HTML and remove inline styles
+        # Normalize & strip risky content
         html = re.sub(r"<br\s*/?>", "<br/>", html, flags=re.IGNORECASE)
         html = re.sub(r"<style\b[^>]*>[\s\S]*?</style>", "", html, flags=re.IGNORECASE)
 
-        # Strip risky elements robustly (not just <script>)
         soup = BeautifulSoup(html, "html.parser")
-        for tag in soup.find_all(["script", "iframe", "form", "object", "embed"]):  # NEW
+        # Strip more than just <script>
+        for tag in soup.find_all(["script", "iframe", "form", "object", "embed"]):
             tag.decompose()
         html = str(soup)
 
-        # Visual spacing around tables to avoid run-on markdown
+        # Add spacing around tables so Markdown doesn't run together
         html = html.replace("<table", "<br/><br/><table").replace("</table>", "</table><br/>")
 
-        body_markdown = convert_to_markdown(
+        md = convert_to_markdown(
             html,
             convert=["p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote", "a", "br"],
             extract_metadata=False,
-            strong_em_symbol="",  # keeps emphasis out; change if you want **bold**
+            strong_em_symbol="",  # keep emphasis out; change to "**" if you want bold
         )
-        body_markdown = re.sub(r"\n +", "\n", body_markdown.strip())
-        body_markdown = re.sub(r"\n\n\n+", "\n\n", body_markdown.strip())
-        response["body"] = body_markdown
-
+        md = re.sub(r"\n +", "\n", md.strip())
+        md = re.sub(r"\n\n\n+", "\n\n", md.strip())
+        body = md
     elif parsed.text_plain:
-        response["body"] = "\n\n".join(parsed.text_plain)
+        body = "\n\n".join(parsed.text_plain)
 
-    subject = parsed.subject or "(no subject)"
-    subject = re.sub(r"\s+", " ", subject).strip()
-    response["subject"] = subject
+    # Subject
+    subj = parsed.subject or "(no subject)"
+    subject = re.sub(r"\s+", " ", subj).strip()
 
-    # Collect recipients from To/Cc/Bcc and dedupe
-    if parsed.to:
-        response["recipients"].extend([addr for _, addr in parsed.to if addr and "@" in addr])
-    if parsed.cc:
-        response["recipients"].extend([addr for _, addr in parsed.cc if addr and "@" in addr])
-    if parsed.bcc:
-        response["recipients"].extend([addr for _, addr in parsed.bcc if addr and "@" in addr])
+    # Recipients (To, Cc, Bcc) → list[str]
+    for name_addr in parsed.to or []:
+        _, addr = name_addr
+        if addr and "@" in addr:
+            recipients.append(addr)
+    for name_addr in parsed.cc or []:
+        _, addr = name_addr
+        if addr and "@" in addr:
+            recipients.append(addr)
+    for name_addr in parsed.bcc or []:
+        _, addr = name_addr
+        if addr and "@" in addr:
+            recipients.append(addr)
 
-    response["recipients"] = list(set(response["recipients"]))
+    # Dedupe while preserving order
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for r in recipients:
+        rl = r.strip().lower()
+        if rl and rl not in seen:
+            seen.add(rl)
+            deduped.append(r.strip())
 
-    return response
+    return {
+        "recipients": deduped,
+        "subject": subject,
+        "body": body,
+        "message_id": message_id,
+    }
