@@ -6,13 +6,13 @@ import base64
 import io
 import json
 import os
-import subprocess
+import tempfile
 
-import clamd
+import pyclamd
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
 
-CHUNK_SIZE = 1 * 1024 * 1024 * 1024
+CHUNK_SIZE = 1024 * 1024 * 1024 * 1
 
 
 def get_config():
@@ -33,17 +33,6 @@ queue_client = QueueClient.from_connection_string(
 )
 
 blob_service_client = BlobServiceClient.from_connection_string(config["storage_connection_string"])
-
-
-def scan_file(file_path):
-    result = subprocess.run(
-        ["clamscan", file_path],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return "THREAT FOUND" in result.stdout
-
 
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
@@ -66,43 +55,65 @@ def process_message(message):
         print(f"FSDH - blob Not foud: {blob_name_in_container} at {blob_url}")
         return
 
-    stream = io.BytesIO()
-    blob_size = blob_client.get_blob_properties().size
+    blob_properties = blob_client.get_blob_properties()
+    blob_size = blob_properties.size
+    blob_metadata = blob_properties.metadata
     chunk_start = 0
     chunk_index = 0
 
     while chunk_start < blob_size:
         chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
-        print(f"FSDH - Downloading chunk {chunk_index}: bytes {chunk_start} to {chunk_end}")
+        print(f"FSDH - Downloading chunk {chunk_index} to tempfile: bytes {chunk_start} to {chunk_end}")
 
-        stream.seek(0)
-        stream.truncate(0)
-        blob_client.download_blob(offset=chunk_start, length=chunk_end - chunk_start + 1).readinto(stream)
 
-        clamav_socket = clamd.ClamdNetworkSocket(host="localhost", port=3310)
-        print("FSDH - scanning over network: " + blob_name_full + f" chunk {chunk_index}")
-        result = clamav_socket.instream(stream)
-        print("FSDH - scan completed: " + blob_name_full + f" chunk {chunk_index}")
+        download_stream = blob_client.download_blob(offset=chunk_start, length=chunk_end - chunk_start + 1)
+        clamav_socket = pyclamd.ClamdUnixSocket() #ClamdNetworkSocket(host="localhost", port=3310)
+        with tempfile.NamedTemporaryFile(delete=False, suffix="-blob-file-chunk") as temp_file:
+            print("FSDH - chunk scan as tempfile: " + blob_name_full + f" chunk {chunk_index} tempfile {temp_file.name}")
+            with open(temp_file.name, "wb") as file:
+                file.write(download_stream.readall())
+                os.chmod(temp_file.name, 0o666)
 
-        status, virus_name = result["stream"]
-        if status == "FOUND" or "clamavtest2025a" in blob_name_in_container:
-            blob_client.delete_blob()
-            print(f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus_name}")
+            result = clamav_socket.scan_file(temp_file.name)
+            print("FSDH - chunk scan completed: " + blob_name_full + f" chunk {chunk_index}")
 
-            # Create marker in infected container
-            infected_blob_client = blob_service_client.get_blob_client(
-                container=config["quarantine_container_name"],
-                blob=blob_name_in_container,
-            )
-            infected_blob_client.upload_blob(
-                io.BytesIO(
-                    "This file was removed by FSDH due to potential threat | "
-                    "Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")
-                ),
-                overwrite=True,
-            )
-        else:
-            print(f"FSDH - blob chunk {chunk_index} is clean: {blob_name_in_container}")
+            threat_found = 0
+            if result is None:
+                print("FSDH - scan error: " + blob_name_full + f" chunk {chunk_index}")
+            else:
+                for fname, (status, virus) in result.items():
+                    if status == 'FOUND':
+                        threat_found += 1
+                        print("FSDH - chunk result FOUND: " + blob_name_full + f" chunk {chunk_index} {virus}")
+                    elif status == 'OK':
+                        print("FSDH - chunk result OK: " + blob_name_full + f" chunk {chunk_index}")
+                    else:
+                        print("FSDH - chunk result " + status + virus)
+
+            if ( threat_found > 0 ) or "clamavtest2025a" in blob_name_in_container:
+                blob_client.delete_blob()
+                print(f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus}")
+
+                # Create marker in infected container
+                infected_blob_client = blob_service_client.get_blob_client(
+                    container=config["quarantine_container_name"],
+                    blob=blob_name_in_container,
+                )
+                infected_blob_client.upload_blob(
+                    io.BytesIO(
+                        "This file was removed by FSDH due to potential threat | "
+                        "Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")
+                    ),
+                    overwrite=True,
+                )
+
+                break
+            else:
+                print(f"FSDH - blob chunk {chunk_index} is clean: {blob_name_in_container}")
+
+                more_blob_metadata = {'avscan': 'ok'}
+                blob_metadata.update(more_blob_metadata)
+                blob_client.set_blob_metadata(metadata=blob_metadata)
 
         chunk_start += CHUNK_SIZE
         chunk_index += 1
