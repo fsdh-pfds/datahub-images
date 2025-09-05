@@ -12,8 +12,6 @@ from aiosmtpd.controller import Controller
 from message_handling import parse_email
 from notifications_python_client.notifications import NotificationsAPIClient
 
-
-
 SMTP_HOSTNAME = os.getenv("SMTP_HOSTNAME", "127.0.0.1")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "2525"))
 
