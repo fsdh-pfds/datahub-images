@@ -96,62 +96,58 @@ async def _send_notify(to: str, subject: str, body: str, reference: str | None):
                 continue
             raise  # bubble up on final attempt or non-transient
 
-
 class NotifyHandler:
     # pylint: disable=invalid-name
     async def handle_DATA(self, _server, session, envelope):
         print("Received email data")
-
-        status = "250 Message accepted"  # assume success unless set otherwise
-
-        # Gate by source IP
         source_ip = session.peer[0] if session.peer else None
         if not is_private_ip(source_ip):
-            print(f"Source IP {source_ip} is not private, rejecting")
-            status = "550 Source IP unacceptable"
-        else:
-            parsed = parse_email(envelope.content)
-            recipients = parsed.get("recipients", [])
-            subject = parsed.get("subject") or ""
-            body = parsed.get("body") or ""
-            reference = parsed.get("message_id")
+            return "550 Source IP unacceptable"
 
-            if not recipients:
-                status = "550 No recipient found"
-            elif not subject or not body:
-                status = "550 Invalid email content"
-            else:
-                # Filter recipients
-                allowed = [r for r in recipients if _recipient_allowed(r)]
-                if not allowed:
-                    print(f"All recipients blocked by allowlist policy: {recipients}")
-                    status = "550 Recipient not permitted"
-                else:
-                    try:
-                        # Notify sends
-                        notify_tasks = [_send_notify(to, subject, body, reference) for to in allowed]
-                        notify_results = await asyncio.gather(*notify_tasks, return_exceptions=True)
+        parsed = parse_email(envelope.content)
+        return await self._process_message(parsed)
 
-                        notify_failures = [r for r in notify_results if isinstance(r, Exception)]
-                        if len(notify_failures) == len(allowed):
-                            for f in notify_failures:
-                                print(f"Notify relay failed: {repr(f)}")
-                            status = "451 Temporary failure"
-                        else:
-                            for r in notify_results:
-                                if not isinstance(r, Exception) and isinstance(r, dict) and "id" in r:
-                                    print(f"Relayed via GC Notify id={r['id']}")
+    async def _process_message(self, parsed: dict) -> str:
+        recipients = parsed.get("recipients", [])
+        subject = parsed.get("subject") or ""
+        body = parsed.get("body") or ""
+        reference = parsed.get("message_id")
 
-                        # Slack mirrors (best-effort)
-                        if SLACK_WEBHOOK_URL:
-                            slack_tasks = [_post_slack(subject, body, to) for to in allowed]
-                            _ = await asyncio.gather(*slack_tasks, return_exceptions=True)
-                    except Exception as e:
-                        print(f"Notify relay failed: {e}")
-                        status = "451 Temporary failure"
+        if not recipients:
+            return "550 No recipient found"
+        if not subject or not body:
+            return "550 Invalid email content"
 
-        return status
+        allowed = [r for r in recipients if _recipient_allowed(r)]
+        if not allowed:
+            return "550 Recipient not permitted"
 
+        return await self._relay(allowed, subject, body, reference)
+
+    async def _relay(self, allowed, subject, body, reference) -> str:
+        try:
+            notify_tasks = [_send_notify(to, subject, body, reference) for to in allowed]
+            results = await asyncio.gather(*notify_tasks, return_exceptions=True)
+
+            failures = [r for r in results if isinstance(r, Exception)]
+            if len(failures) == len(allowed):
+                for f in failures:
+                    print(f"Notify relay failed: {repr(f)}")
+                return "451 Temporary failure"
+
+            for r in results:
+                if not isinstance(r, Exception) and isinstance(r, dict) and "id" in r:
+                    print(f"Relayed via GC Notify id={r['id']}")
+
+            if SLACK_WEBHOOK_URL:
+                slack_tasks = [_post_slack(subject, body, to) for to in allowed]
+                _ = await asyncio.gather(*slack_tasks, return_exceptions=True)
+
+            return "250 Message accepted"
+        except Exception as e:
+            print(f"Notify relay failed: {e}")
+            return "451 Temporary failure"
+            
 if __name__ == "__main__":
     if not NOTIFY_API_KEY or not NOTIFY_TEMPLATE_ID:
         print("WARNING: NOTIFY_API_KEY and/or NOTIFY_TEMPLATE_ID not set; messages will be rejected.")
