@@ -60,26 +60,28 @@ def process_message(message):
     blob_metadata = blob_properties.metadata
     chunk_start = 0
     chunk_index = 0
+    file_infected = 0
 
     while chunk_start < blob_size:
         chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
         print(f"FSDH - Downloading chunk {chunk_index} to tempfile: bytes {chunk_start} to {chunk_end}")
 
 
-        download_stream = blob_client.download_blob(offset=chunk_start, length=chunk_end - chunk_start + 1)
-        clamav_socket = pyclamd.ClamdUnixSocket() #ClamdNetworkSocket(host="localhost", port=3310)
-        with tempfile.NamedTemporaryFile(delete=False, suffix="-blob-file-chunk") as temp_file:
+        clamav_socket = pyclamd.ClamdUnixSocket()
+        with tempfile.NamedTemporaryFile(delete=True, suffix="filechunk") as temp_file:
             print("FSDH - chunk scan as tempfile: " + blob_name_full + f" chunk {chunk_index} tempfile {temp_file.name}")
             with open(temp_file.name, "wb") as file:
-                file.write(download_stream.readall())
+                file.write(blob_client.download_blob(offset=chunk_start, length=chunk_end - chunk_start + 1).readall())
                 os.chmod(temp_file.name, 0o666)
 
+
+            print("FSDH - temp file: ", os.path.getsize(temp_file.name),  " readable ", os.access(temp_file.name, os.R_OK))
             result = clamav_socket.scan_file(temp_file.name)
             print("FSDH - chunk scan completed: " + blob_name_full + f" chunk {chunk_index}")
 
             threat_found = 0
             if result is None:
-                print("FSDH - scan error: " + blob_name_full + f" chunk {chunk_index}")
+                print("FSDH - scan result None: " + blob_name_full + f" chunk {chunk_index}")
             else:
                 for fname, (status, virus) in result.items():
                     if status == 'FOUND':
@@ -107,16 +109,18 @@ def process_message(message):
                     overwrite=True,
                 )
 
+                file_infected += 1
                 break
             else:
                 print(f"FSDH - blob chunk {chunk_index} is clean: {blob_name_in_container}")
 
-                more_blob_metadata = {'avscan': 'ok'}
-                blob_metadata.update(more_blob_metadata)
-                blob_client.set_blob_metadata(metadata=blob_metadata)
-
         chunk_start += CHUNK_SIZE
         chunk_index += 1
+    
+    if file_infected < 1 :
+        more_blob_metadata = {'avscan': 'ok'}
+        blob_metadata.update(more_blob_metadata)
+        blob_client.set_blob_metadata(metadata=blob_metadata)
 
 
 def main():
