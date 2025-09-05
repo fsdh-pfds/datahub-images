@@ -17,10 +17,7 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "2525"))
 
 NOTIFY_API_KEY = os.getenv("NOTIFY_API_KEY")
 NOTIFY_TEMPLATE_ID = os.getenv("NOTIFY_TEMPLATE_ID")
-# GC Notify base (not GOV.UK)
-NOTIFY_BASE_URL = os.getenv(
-    "NOTIFY_BASE_URL", "https://api.notification.canada.ca"
-)  # https://documentation.notification.canada.ca/en/start.html
+NOTIFY_BASE_URL = os.getenv("NOTIFY_BASE_URL", "https://api.notification.canada.ca")
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 
 # Recipient allowlist: comma-separated domains OR a regex (takes precedence)
@@ -38,7 +35,6 @@ notifications_client = NotificationsAPIClient(NOTIFY_API_KEY, base_url=NOTIFY_BA
 
 
 def is_private_ip(ip: str | None) -> bool:
-    """Return True if IP is private/loopback/link-local; False otherwise."""
     if not ip:
         return False
     try:
@@ -49,13 +45,11 @@ def is_private_ip(ip: str | None) -> bool:
 
 
 def _recipient_allowed(address: str) -> bool:
-    """Allow by regex (if set) or by domain list; otherwise allow."""
     if _recipient_allow_re:
         return bool(_recipient_allow_re.fullmatch(address))
     if RECIPIENT_ALLOW_DOMAINS:
-        # Exact domain match (no subdomain) unless you list subdomains explicitly
         return any(address.endswith("@" + d) for d in RECIPIENT_ALLOW_DOMAINS)
-    return True  # if no policy set, allow everything inside the private-IP boundary
+    return True
 
 
 async def _post_slack(subject: str, body: str, to: str):
@@ -63,7 +57,6 @@ async def _post_slack(subject: str, body: str, to: str):
         return
     payload = {"to": to, "subject": subject, "body": (body[:1000] if body else "")}
 
-    # run in thread pool to avoid blocking the event loop
     def _do():
         r = requests.post(SLACK_WEBHOOK_URL, json=payload, timeout=5)
         r.raise_for_status()
@@ -94,7 +87,7 @@ async def _send_notify(to: str, subject: str, body: str, reference: str | None):
                 sleep = min(BACKOFF_CAP, BACKOFF_BASE * (2**attempt)) + random.uniform(0, 0.25)
                 await asyncio.sleep(sleep)
                 continue
-            raise  # bubble up on final attempt or non-transient
+            raise
 
 
 class NotifyHandler:
