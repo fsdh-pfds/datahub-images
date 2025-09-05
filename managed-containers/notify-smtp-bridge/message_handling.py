@@ -1,3 +1,4 @@
+# pylint: disable=broad-exception-caught
 import re
 
 from bs4 import BeautifulSoup
