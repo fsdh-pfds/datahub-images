@@ -98,6 +98,7 @@ async def _send_notify(to: str, subject: str, body: str, reference: str | None):
 
 
 class NotifyHandler:
+    # pylint: disable=invalid-name
     async def handle_DATA(self, server, session, envelope):
         print("Received email data")
 

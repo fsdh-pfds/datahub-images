@@ -1,9 +1,10 @@
+# pylint: disable=broad-exception-caught
 import os
 import socket
 import sys
 
 SMTP_HOST_HEALTHCHECK = os.getenv("SMTP_HOST_HEALTHCHECK", "localhost")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 2525))
+SMTP_PORT = int(os.getenv("SMTP_PORT", "2525"))
 
 try:
     with socket.create_connection((SMTP_HOST_HEALTHCHECK, SMTP_PORT), timeout=3) as sock:
