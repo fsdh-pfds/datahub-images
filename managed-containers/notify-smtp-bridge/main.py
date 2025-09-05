@@ -96,6 +96,7 @@ async def _send_notify(to: str, subject: str, body: str, reference: str | None):
                 continue
             raise  # bubble up on final attempt or non-transient
 
+
 class NotifyHandler:
     # pylint: disable=invalid-name
     async def handle_DATA(self, _server, session, envelope):
@@ -147,7 +148,8 @@ class NotifyHandler:
         except Exception as e:
             print(f"Notify relay failed: {e}")
             return "451 Temporary failure"
-            
+
+
 if __name__ == "__main__":
     if not NOTIFY_API_KEY or not NOTIFY_TEMPLATE_ID:
         print("WARNING: NOTIFY_API_KEY and/or NOTIFY_TEMPLATE_ID not set; messages will be rejected.")
