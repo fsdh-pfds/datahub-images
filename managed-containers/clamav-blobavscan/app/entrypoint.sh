@@ -3,7 +3,7 @@ set -e
 
 touch "$0".start
 freshclam
-mkdir -p /var/run/clamav && chown clamav:clamav /var/run/clamav && echo "TCPSocket 3310" >>/etc/clamav/clamd.conf
+mkdir -p /var/run/clamav && chown clamav:clamav /var/run/clamav && (echo "TCPSocket 3310") >>/etc/clamav/clamd.conf
 clamd
 
 # shellcheck disable=SC1091

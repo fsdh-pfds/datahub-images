@@ -1,5 +1,5 @@
-azure-storage-queue
-azure-storage-blob
+azure-storage-queue==12.*
+azure-storage-blob==12.*
 azure-identity==1.*
 azure-keyvault==4.*
-clamd
+pyclamd==0.4.*
