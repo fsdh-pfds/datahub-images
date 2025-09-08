@@ -34,6 +34,7 @@ queue_client = QueueClient.from_connection_string(
 
 blob_service_client = BlobServiceClient.from_connection_string(config["storage_connection_string"])
 
+
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
     blob_url = json_data["data"]["blobUrl"]
@@ -66,16 +67,18 @@ def process_message(message):
         chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
         print(f"FSDH - Downloading chunk {chunk_index} to tempfile: bytes {chunk_start} to {chunk_end}")
 
-
         clamav_socket = pyclamd.ClamdUnixSocket()
         with tempfile.NamedTemporaryFile(delete=True, suffix="filechunk") as temp_file:
-            print("FSDH - chunk scan as tempfile: " + blob_name_full + f" chunk {chunk_index} tempfile {temp_file.name}")
+            print(
+                "FSDH - chunk scan as tempfile: " + blob_name_full + f" chunk {chunk_index} tempfile {temp_file.name}"
+            )
             with open(temp_file.name, "wb") as file:
                 file.write(blob_client.download_blob(offset=chunk_start, length=chunk_end - chunk_start + 1).readall())
                 os.chmod(temp_file.name, 0o666)
 
-
-            print("FSDH - temp file: ", os.path.getsize(temp_file.name),  " readable ", os.access(temp_file.name, os.R_OK))
+            print(
+                "FSDH - temp file: ", os.path.getsize(temp_file.name), " readable ", os.access(temp_file.name, os.R_OK)
+            )
             result = clamav_socket.scan_file(temp_file.name)
             print("FSDH - chunk scan completed: " + blob_name_full + f" chunk {chunk_index}")
 
@@ -84,15 +87,15 @@ def process_message(message):
                 print("FSDH - scan result None: " + blob_name_full + f" chunk {chunk_index}")
             else:
                 for fname, (status, virus) in result.items():
-                    if status == 'FOUND':
+                    if status == "FOUND":
                         threat_found += 1
                         print("FSDH - chunk result FOUND: " + blob_name_full + f" chunk {chunk_index} {virus}")
-                    elif status == 'OK':
+                    elif status == "OK":
                         print("FSDH - chunk result OK: " + blob_name_full + f" chunk {chunk_index}")
                     else:
                         print("FSDH - chunk result " + status + virus)
 
-            if ( threat_found > 0 ) or "clamavtest2025a" in blob_name_in_container:
+            if (threat_found > 0) or "clamavtest2025a" in blob_name_in_container:
                 blob_client.delete_blob()
                 print(f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus}")
 
@@ -116,9 +119,9 @@ def process_message(message):
 
         chunk_start += CHUNK_SIZE
         chunk_index += 1
-    
-    if file_infected < 1 :
-        more_blob_metadata = {'avscan': 'ok'}
+
+    if file_infected < 1:
+        more_blob_metadata = {"avscan": "ok"}
         blob_metadata.update(more_blob_metadata)
         blob_client.set_blob_metadata(metadata=blob_metadata)
 
