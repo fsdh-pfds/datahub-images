@@ -114,8 +114,7 @@ def process_message(message):
 
                 file_infected += 1
                 break
-            else:
-                print(f"FSDH - blob chunk {chunk_index} is clean: {blob_name_in_container}")
+            print(f"FSDH - blob chunk {chunk_index} is clean: {blob_name_in_container}")
 
         chunk_start += CHUNK_SIZE
         chunk_index += 1
