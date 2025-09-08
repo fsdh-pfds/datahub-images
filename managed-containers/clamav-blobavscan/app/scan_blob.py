@@ -89,9 +89,9 @@ def process_message(message):
                 for fname, (status, virus) in result.items():
                     if status == "FOUND":
                         threat_found += 1
-                        print("FSDH - chunk result FOUND: " + blob_name_full + f" chunk {chunk_index} {virus}")
+                        print("FSDH - chunk result FOUND: " + blob_name_full + f" chunk {chunk_index} {fname} {virus}")
                     elif status == "OK":
-                        print("FSDH - chunk result OK: " + blob_name_full + f" chunk {chunk_index}")
+                        print("FSDH - chunk result OK: " + blob_name_full + f" chunk {chunk_index} {fname}")
                     else:
                         print("FSDH - chunk result " + status + virus)
 
