@@ -97,7 +97,7 @@ def process_message(message):
 
             if (threat_found > 0) or "clamavtest2025a" in blob_name_in_container:
                 blob_client.delete_blob()
-                print(f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}: {virus}")
+                print(f"FSDH - Infected blob chunk {chunk_index}: {blob_name_in_container} at {blob_url}")
 
                 # Create marker in infected container
                 infected_blob_client = blob_service_client.get_blob_client(
