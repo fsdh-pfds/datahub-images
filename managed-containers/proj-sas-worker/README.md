@@ -10,9 +10,9 @@ A minimal, pinned Ubuntu-based container that **rotates an Azure Storage Contain
 
 ## What it does
 
-* Reads Key Vault secret **`container-sas`**.
-* If its `expiry` tag is **≤ 14 days** out, generates a **new SAS** for container **`datahub`** with `rwd` permissions and a **91‑day** window (start = yesterday, end = +91 days).
-* Updates the Key Vault secret value and tags (`start`, `expiry`).
+- Reads Key Vault secret **`container-sas`**.
+- If its `expiry` tag is **≤ 14 days** out, generates a **new SAS** for container **`datahub`** with `rwd` permissions and a **91‑day** window (start = yesterday, end = +91 days).
+- Updates the Key Vault secret value and tags (`start`, `expiry`).
 
 Logic lives in `app/sas.ps1` and is the container’s default command.
 
@@ -20,12 +20,11 @@ Logic lives in `app/sas.ps1` and is the container’s default command.
 
 ## Requirements
 
-* Azure Subscription & Key Vault reachable from the workload.
-* Storage account containing container `datahub`.
-* Runtime identity (system or user‑assigned) with **both**:
-
-  * **Key Vault data‑plane** rights to get/set secrets (RBAC/Access Policy).
-  * Rights to **issue SAS** for the target container (either account‑key level or user‑delegation SAS via appropriate roles).
+- Azure Subscription & Key Vault reachable from the workload.
+- Storage account containing container `datahub`.
+- Runtime identity (system or user‑assigned) with **both**:
+  - **Key Vault data‑plane** rights to get/set secrets (RBAC/Access Policy).
+  - Rights to **issue SAS** for the target container (either account‑key level or user‑delegation SAS via appropriate roles).
 
 > Lacking storage permissions will fail SAS generation even if Key Vault access is correct.
 
@@ -33,10 +32,10 @@ Logic lives in `app/sas.ps1` and is the container’s default command.
 
 ## Image design highlights
 
-* Ubuntu 24.04 pinned by digest + **apt snapshot** via `SNAPSHOT_ID`.
-* Package versions pinned in `base_packages.list` / `addon_packages.list`.
-* PowerShell + Az modules at fixed versions.
-* Runs as **non‑root** user `runner`.
+- Ubuntu 24.04 pinned by digest + **apt snapshot** via `SNAPSHOT_ID`.
+- Package versions pinned in `base_packages.list` / `addon_packages.list`.
+- PowerShell + Az modules at fixed versions.
+- Runs as **non‑root** user `runner`.
 
 > If you mount extra paths, ensure write permissions for a non‑root user.
 
@@ -106,8 +105,6 @@ docker run --rm \
   <image-ref>
 ```
 
-
-
 ---
 
 ## Custom trust (optional Root CA)
@@ -124,17 +121,17 @@ export NODE_EXTRA_CA_CERTS=/tmp/custom-root-ca.crt
 
 ## Logging & exit behavior
 
-* Success: logs current/new expiry and exits `0`.
-* Failure (auth, KV, storage): descriptive error + non‑zero exit.
+- Success: logs current/new expiry and exits `0`.
+- Failure (auth, KV, storage): descriptive error + non‑zero exit.
 
 ---
 
 ## Troubleshooting
 
-* **KV write denied** → verify KV data‑plane RBAC/Access Policy.
-* **SAS generation fails** → ensure roles allow account‑key or user‑delegation SAS.
-* **TLS errors** → install your Root CA correctly; keep verification **on**.
-* **Permission denied** → running as non‑root; fix mounts/ownership or rebuild with `--chown`.
+- **KV write denied** → verify KV data‑plane RBAC/Access Policy.
+- **SAS generation fails** → ensure roles allow account‑key or user‑delegation SAS.
+- **TLS errors** → install your Root CA correctly; keep verification **on**.
+- **Permission denied** → running as non‑root; fix mounts/ownership or rebuild with `--chown`.
 
 ---
 
@@ -154,6 +151,6 @@ proj-sas-worker/
 
 ## Security notes
 
-* Keep TLS verification **ON**. Install CAs.
-* Non‑root runtime is deliberate; least privilege.
-* SAS are secrets—store and surface only via Key Vault.
+- Keep TLS verification **ON**. Install CAs.
+- Non‑root runtime is deliberate; least privilege.
+- SAS are secrets—store and surface only via Key Vault.
