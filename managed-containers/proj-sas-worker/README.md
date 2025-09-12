@@ -137,7 +137,7 @@ export NODE_EXTRA_CA_CERTS=/tmp/custom-root-ca.crt
 
 ## File layout
 
-```
+```none
 proj-sas-worker/
 ├─ Dockerfile                # pinned base + apt snapshot + Az modules
 ├─ base_packages.list        # minimal pinned packages
