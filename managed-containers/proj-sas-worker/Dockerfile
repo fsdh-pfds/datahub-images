@@ -39,7 +39,7 @@ RUN apt-get update && \
 # Install Powershell Modules
 RUN pwsh -Command \
     "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction Stop; \
-    Install-Module -Name Az -RequiredVersion 14.0.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
+    Install-Module -Name Az -RequiredVersion 14.4.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
     Install-Module -Name SqlServer -RequiredVersion 22.3.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
     Install-Module -Name Az.Accounts -RequiredVersion 5.3.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
     Install-Module -Name Az.ServiceBus -RequiredVersion 4.1.1 -Scope AllUsers -Repository PSGallery -Force -AllowClobber"
