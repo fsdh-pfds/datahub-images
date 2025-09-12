@@ -1,10 +1,22 @@
 $projCode = $env:PROJ_CD
 $projRgName = $env:PROJ_RG
-$projCMK = "project-cmk"
 $projKeyVaultName = $env:PROJ_KV
 $projSub = $env:PROJ_SUB
 $projStorageAcct = $env:PROJ_STORAGE_ACCT
 $azClientId = $env:CLIENT_ID
+
+if ($env:ROOT_CA) {
+    try {
+        Write-Host "Installing custom root CA"
+        $dest = "/tmp/custom-root-ca.crt"
+        Copy-Item -Path "/etc/ssl/certs/ca-certificates.crt" -Destination $dest -Force
+        Add-Content -Path $dest -Value "`n$($env:ROOT_CA)`n"
+        Write-Host "Custom RootCA set to $dest"
+    }
+    catch {
+        Write-Host "Failed to install custom root CA: $($_.Exception.Message)"
+    }
+}
 
 Write-Host Rotate the SAS token in AKV Secret name storage-sas for project $projCode
 $currentDate = Get-Date
