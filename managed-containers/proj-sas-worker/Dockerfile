@@ -4,12 +4,13 @@ FROM ubuntu:$UBUNTU_VERSION
 
 # Enable headless mode
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PROJ_CD= PROJ_RG= PROJ_STORAGE_ACCT= PROJ_KV= PROJ_SUB= CLIENT_ID=
+
 
 COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
 
 # Install base packages.list
-# ./get-versions --list openssl ca-certificates jq curl gpg lsb-release git debsums liblttng-ust1t64 libicu74 wget
 RUN apt-get update && \
     xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -33,11 +34,7 @@ RUN pwsh -Command \
     Install-Module -Name Az.Accounts -RequiredVersion 5.3.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
     Install-Module -Name Az.ServiceBus -RequiredVersion 4.1.1 -Scope AllUsers -Repository PSGallery -Force -AllowClobber"
 
-
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
+# Create unprivileged user
 RUN useradd -m -s /bin/bash runner
 
 # Switch to unprivileged user and set entrypoint
