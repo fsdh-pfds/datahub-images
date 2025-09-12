@@ -6,11 +6,21 @@ FROM ubuntu:$UBUNTU_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PROJ_CD= PROJ_RG= PROJ_STORAGE_ACCT= PROJ_KV= PROJ_SUB= CLIENT_ID=
 
-
 COPY base_packages.list /tmp/base_packages.list
 COPY addon_packages.list /tmp/addon_packages.list
 
-# Install base packages.list
+# Install ca-certificates
+# hadolint ignore=DL3008
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/* 
+
+# apt-get shapshot id
+ARG SNAPSHOT_ID=20250912T000000Z
+RUN echo "APT::Snapshot \"${SNAPSHOT_ID}\";" \
+     > /etc/apt/apt.conf.d/50snapshot
+
+# Install snapshotted baseline packages
 RUN apt-get update && \
     xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -21,7 +31,7 @@ RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsof
     echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/microsoft-prod.list && \
     echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list
   
-# Install addon packages.list
+# Install snapshotted addon packages
 RUN apt-get update && \
     xargs -a /tmp/addon_packages.list apt-get install -y --no-install-recommends && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
