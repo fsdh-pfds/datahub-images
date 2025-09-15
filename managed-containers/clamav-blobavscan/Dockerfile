@@ -6,11 +6,6 @@ LABEL org.opencontainers.image.description="ClamAV image used to antivirus scan 
 LABEL org.opencontainers.image.source="https://github.com/fsdh-pfds/datahub-images"
 LABEL org.opencontainers.image.url="https://github.com/fsdh-pfds/datahub-images/blob/main/managed-containers/clamav-blobavscan/README.md"
 
-# Target platform check docker buildx build --platform linux/amd64
-ARG TARGETPLATFORM
-RUN test "${TARGETPLATFORM:-linux/amd64}" = "linux/amd64" || \
-    (echo "ERROR: This image must be built for linux/amd64 (got: ${TARGETPLATFORM:-unset})" >&2; exit 1)
-
 ENV DataHub_ENVNAME=dev \
     AzureTenantId= \
     AzureSubscriptionId= \
