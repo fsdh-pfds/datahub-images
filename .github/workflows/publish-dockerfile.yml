@@ -111,6 +111,11 @@ jobs:
 
           echo "Dockerfile files to process: ${dockerfiles_list[*]}"
 
+          REVISION="${GITHUB_SHA}"
+          CREATED="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          REF_NAME="${{ github.ref_name }}"
+          SOURCE_URL="https://github.com/${{ github.repository }}"
+
           # Iterate through each Dockerfile path
           for dockerfile in "${dockerfiles_list[@]}"; do
             # Extract the directory containing the Dockerfile
@@ -130,7 +135,14 @@ jobs:
             echo "Building Docker image: $image_name from $dockerfile"
 
             # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
-            docker buildx build --load --no-cache -t "$repo_path" -f "$dockerfile" "$dockerfile_path"
+            docker buildx build --load --no-cache \
+              --platform=linux/amd64 \
+              --label "org.opencontainers.image.revision=${REVISION}" \
+              --label "org.opencontainers.image.created=${CREATED}" \
+              --label "org.opencontainers.image.ref.name=${REF_NAME}" \
+              --label "org.opencontainers.image.source=${SOURCE_URL}" \
+              -t "$repo_path" \
+              -f "$dockerfile" "$dockerfile_path"
 
             # Push the Docker image to the GitHub Container Registry
             docker push "$repo_path"
