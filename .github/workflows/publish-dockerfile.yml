@@ -142,7 +142,6 @@ jobs:
               --label "org.opencontainers.image.ref.name=${REF_NAME}" \
               --label "org.opencontainers.image.source=${SOURCE_URL}" \
               -t "$repo_path" \
-              -t "$tag_sha" \
               -f "$dockerfile" "$dockerfile_path"
 
             # Push the Docker image to the GitHub Container Registry
