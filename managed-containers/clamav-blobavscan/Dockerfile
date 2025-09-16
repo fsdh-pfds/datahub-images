@@ -1,4 +1,3 @@
-# Pinned to the amd64 build of ubuntu:24.04 for reproducibility and to avoid multi-arch resolution.
 # Update digest via: docker buildx imagetools inspect ubuntu:24.04 | grep amd64
 FROM ubuntu:24.04@sha256:dc17125eaac86538c57da886e494a34489122fb6a3ebb6411153d742594c2ddc
 
