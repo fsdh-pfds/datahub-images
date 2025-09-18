@@ -1,36 +1,55 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.04@sha256:6015f66923d7afbc53558d7ccffd325d43b4e249f41a6e93eef074c9505d2233
+LABEL org.opencontainers.image.description="Container Job to rorate Storage Account SAS tokens"
+LABEL org.opencontainers.image.source="https://github.com/fsdh-pfds/datahub-images"
+LABEL org.opencontainers.image.url="https://github.com/fsdh-pfds/datahub-images/blob/main/managed-containers/proj-sas-worker/README.md"
 
-ENV PROJ_CD= PROJ_RG= PROJ_DBR_RG= PROJ_KV= PROJ_SUB= CLIENT_ID= PROJ_BUDGET=
-ENV DEBIAN_FRONTEND=noninteractive AGENT_VERSION="4.254.0" TF_VERSION="1.11.4" TARGETARCH="linux-x64" PACKER_VERSION="1.12.0"
-ENV NODE_TLS_REJECT_UNAUTHORIZED=0 
-ENV SSL_CERT_FILE=/azp/gc.cer
-RUN echo "APT::Get::Assume-Yes \"true\";" > /etc/apt/apt.conf.d/90assumeyes
+# Enable headless mode
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PROJ_CD= PROJ_RG= PROJ_STORAGE_ACCT= PROJ_KV= PROJ_SUB= CLIENT_ID=
 
-RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common build-essential \
-    ca-certificates curl jq git iputils-ping libcurl4 libicu74 libunwind8 jq lsb-release \
-    netcat-openbsd wget zip unzip ansible openssl apt-transport-https apt-utils iputils-ping vim git-lfs libssl-dev sudo postgresql-client dos2unix && \
-    rm -rf /var/lib/apt/lists/*
-RUN add-apt-repository ppa:deadsnakes/ppa && apt update && apt install -y python3.11 libpython3.11 python3-pip && update-alternatives --install /usr/bin/python3 python /usr/bin/python3.11 1 && ln -sf /usr/local/bin/pip3.11 /usr/bin/pip
-RUN mkdir -p /app/temp && cd $_ && wget --no-check-certificate -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O ms.deb && dpkg -i ms.deb 
-RUN apt update && apt install -y powershell dotnet-sdk-8.0
-RUN mkdir -p /azp/_work/_tool/Python/3.11.7/x64/ /azp/_work/_tool/node/22.15.0/
-RUN cd /app/temp && wget --no-check-certificate https://nodejs.org/download/release/v22.15.0/node-v22.15.0-linux-x64.tar.gz && tar -zxvf node-v22.15.0-linux-x64.tar.gz && mv node-v22.15.0-linux-x64 /azp/_work/_tool/node/22.15.0/x64 && touch /azp/_work/_tool/node/22.15.0/x64.complete
-RUN openssl s_client -showcerts -connect www.canada.ca:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' >/azp/gc.cer
-RUN curl -k -LsS https://aka.ms/InstallAzureCLIDeb | bash && rm -rf /var/lib/apt/lists/*
-RUN wget --no-check-certificate -q https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip -O tf.zip && unzip -o tf.zip && mv terraform bin/terraform && rm -rf tf.zip
-RUN wget --no-check-certificate -q https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip -O pk.zip && unzip -o pk.zip && mv packer bin/ && rm -f pk.zip
-RUN cd /app/temp && wget --no-check-certificate https://www.python.org/ftp/python/3.11.7/Python-3.11.7.tgz -O py.tgz && tar -xf py.tgz && cd Python-3.11.7 && ./configure --enable-optimizations --prefix=/azp/_work/_tool/Python/3.11.7/x64/ && make && make install && touch /azp/_work/_tool/Python/3.11.7/x64.complete
-RUN cd /azp/_work/_tool/Python/3.11.7/x64/bin && ./python3 -m pip install --upgrade pip && ./pip3 install certifi==2023.7.22 
-RUN apt-get autoclean && rm -rf /app/temp
-RUN pwsh -c "Install-Module -Name Az -Repository PSGallery -Force"
-RUN pwsh -c "Install-Module -Name SqlServer -AllowClobber -Force"
-RUN pwsh -c "Install-Module -Name Az.Accounts -AllowClobber -Force"
-RUN pwsh -c "Install-Module -Name Az.ServiceBus -AllowClobber -Force"
-RUN touch custom_data.done
-RUN (echo "NODE_TLS_REJECT_UNAUTHORIZED=0"; echo "REQUESTS_CA_BUNDLE=/azp/gc.cer"; echo "AZURE_CLI_DISABLE_CONNECTION_VERIFICATION=1"; echo "SSL_CERT_FILE=/azp/gc.cer"; )>>/etc/environment
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
-RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs)-prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list && apt update && apt install -y azure-functions-core-tools-4
+COPY base_packages.list /tmp/base_packages.list
+COPY addon_packages.list /tmp/addon_packages.list
 
+# Install ca-certificates
+# hadolint ignore=DL3008
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates \
+ && rm -rf /var/lib/apt/lists/* 
+
+# apt-get shapshot id
+ARG SNAPSHOT_ID=20250912T000000Z
+RUN echo "APT::Snapshot \"${SNAPSHOT_ID}\";" \
+     > /etc/apt/apt.conf.d/50snapshot
+
+# Install snapshotted baseline packages
+RUN apt-get update && \
+    xargs -a /tmp/base_packages.list apt-get install -y --no-install-recommends && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install addon repositories    
+RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsoft.gpg && \
+    gpg --dearmor < /tmp/microsoft.gpg > /usr/share/keyrings/microsoft-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/ubuntu/$(lsb_release -rs)/prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/microsoft-prod.list && \
+    echo "deb [signed-by=/usr/share/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list
+  
+# Install snapshotted addon packages
+RUN apt-get update && \
+    xargs -a /tmp/addon_packages.list apt-get install -y --no-install-recommends && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install Powershell Modules
+RUN pwsh -Command \
+    "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction Stop; \
+    Install-Module -Name Az -RequiredVersion 14.4.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
+    Install-Module -Name SqlServer -RequiredVersion 22.3.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
+    Install-Module -Name Az.Accounts -RequiredVersion 5.3.0 -Scope AllUsers -Repository PSGallery -Force -AllowClobber; \
+    Install-Module -Name Az.ServiceBus -RequiredVersion 4.1.1 -Scope AllUsers -Repository PSGallery -Force -AllowClobber"
+
+# Create unprivileged user
+RUN useradd -m -s /bin/bash runner
+
+# Switch to unprivileged user and set entrypoint
+USER runner
 COPY app/ /app/
 
-CMD ["pwsh", "-f", "/app/job.ps1"]
+CMD ["pwsh", "-f", "/app/cost.ps1"]
