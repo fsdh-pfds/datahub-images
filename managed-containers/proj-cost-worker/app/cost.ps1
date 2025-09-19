@@ -7,14 +7,44 @@ $azClientId = $env:CLIENT_ID
 $projCMK = "project-cmk"
 $projKeyVaultName = $env:PROJ_KV
 $projSub = $env:PROJ_SUB
-
-Write-Host FSDH Checking spend for project $projCode $projBudget
 $currentDate = Get-Date
 $fiscalYearStart = if ($currentDate.Month -ge 4 ) { [datetime]::new($currentDate.Year, 4, 1) } else { [datetime]::new($currentDate.Year - 1, 4, 1) }
 
-Connect-AzAccount -Identity -AccountId $azClientId
-Set-AzContext -Subscription $projSub
+if ($env:ROOT_CA) {
+    try {
+        Write-Host "Installing custom root CA"
+        $dest = "/tmp/custom-root-ca.crt"
+        Copy-Item -Path "/etc/ssl/certs/ca-certificates.crt" -Destination $dest -Force
+        Add-Content -Path $dest -Value "`n$($env:ROOT_CA)`n"
+        Write-Host "Custom RootCA set to $dest"
+    }
+    catch {
+        Write-Host "Failed to install custom root CA: $($_.Exception.Message)"
+    }
+}
 
+try {
+    Set-AzContext -Subscription $projSub -ErrorAction Stop | Out-Null
+} catch {
+    try {
+        if ($azClientId) {
+            Connect-AzAccount -Identity -AccountId $azClientId -ErrorAction Stop | Out-Null
+        } else {
+            Connect-AzAccount -Identity -ErrorAction Stop | Out-Null
+        }
+    } catch {
+        Write-Error ("Managed identity login failed: {0}" -f $_.Exception.Message)
+        exit 1
+    }
+    try {
+        Set-AzContext -Subscription $projSub -ErrorAction Stop | Out-Null
+    } catch {
+        Write-Error ("Authenticated, but cannot access or set subscription '{0}': {1}" -f $projSub, $_.Exception.Message)
+        exit 1
+    }
+}
+
+Write-Host FSDH Checking spend for project $projCode $projBudget
 Write-Host FSDH Checking existence for resource group $projRgName with FY annual budget $projBudget                  
 $maxRetries = 10 ; $retryCount = 0 ; $delay = 30 # Delay in seconds
 while ($retryCount -lt $maxRetries) {
