@@ -2,6 +2,8 @@
 
 A minimal, pinned Ubuntu-based container that **monitors Azure project spend** and can enforce budget limits by **disabling a Customer-Managed Key (CMK)** in **Azure Key Vault**. Intended to run non-interactively (cron/ACI/Kubernetes Job) using a **Managed Identity**.
 
+---
+
 > **Architecture**: This image **must be built and published as `linux/amd64`**. All build/push commands below include `--platform linux/amd64`. Keep it single-arch unless you’ve validated multi-arch at runtime.
 
 ---
@@ -10,6 +12,7 @@ A minimal, pinned Ubuntu-based container that **monitors Azure project spend** a
 
 - Reads configured **project budget** from environment variables.
 - Retrieves **current spend** from Azure Consumption APIs for:
+
   - The main project Resource Group.
   - An optional Databricks Resource Group.
 
@@ -129,6 +132,7 @@ export NODE_EXTRA_CA_CERTS=/tmp/custom-root-ca.crt
 - Logs current project spend and budget comparison.
 
 - On budget exceeded:
+
   - If enforcement enabled → disables CMK and logs action.
   - If enforcement disabled → logs warning only.
 
@@ -144,3 +148,17 @@ export NODE_EXTRA_CA_CERTS=/tmp/custom-root-ca.crt
 - **KV update denied** → verify Key Vault RBAC or Access Policy.
 - **429 TooManyRequests** → script includes retry logic; increase delays if needed.
 - **Permission denied** → running as non-root; fix mounts/ownership or rebuild with `--chown`.
+
+---
+
+## File layout
+
+```none
+proj-cost-worker/
+├─ Dockerfile                # pinned base + apt snapshot + Az modules
+├─ base_packages.list        # minimal pinned packages
+├─ addon_packages.list       # addons (PowerShell)
+├─ app/
+│  └─ cost.ps1               # budget monitoring + enforcement logic
+└─ README.d
+```
