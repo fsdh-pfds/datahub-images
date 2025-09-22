@@ -17,6 +17,7 @@ jobs:
       contents: write
       packages: write
       security-events: write
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
@@ -90,6 +91,9 @@ jobs:
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
         # Set up Docker Buildx, which allows building multi-platform Docker images
 
+      - name: Install Cosign (for attestations)
+        uses: sigstore/cosign-installer@v3.7.0
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
         with:
@@ -97,7 +101,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Scan Docker Images
+      - name: Build, Scan, and Generate SBOMs
+        id: build_scan_sbom
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -106,8 +111,8 @@ jobs:
           # Convert JSON array to a bash array
           mapfile -t dockerfiles_list < <(echo "$dockerfiles_json" | jq -r '.[]')
 
-          # Create directory to store Trivy scan results
-          mkdir -p trivy-results
+          # Create directories to store scan results and SBOMs
+          mkdir -p trivy-results sboms
 
           echo "Dockerfile files to process: ${dockerfiles_list[*]}"
 
@@ -117,14 +122,13 @@ jobs:
           SOURCE_URL="https://github.com/${{ github.repository }}"
 
           # Iterate through each Dockerfile path
+          digests=()
+
           for dockerfile in "${dockerfiles_list[@]}"; do
             # Extract the directory containing the Dockerfile
             dockerfile_path="$(dirname "$dockerfile")"
-
             # Get the base name of the directory
             package_name="$(basename "$dockerfile_path")"
-
-            # Convert the base name to lowercase to define the package name
             package_name="$(echo "$package_name" | tr '[:upper:]' '[:lower:]')"
             echo "Package name: $package_name"
 
@@ -133,7 +137,6 @@ jobs:
             repo_path="ghcr.io/${{ github.repository_owner }}/$image_name"
 
             echo "Building Docker image: $image_name from $dockerfile"
-
             # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
             docker buildx build --load --no-cache \
               --platform=linux/amd64 \
@@ -144,15 +147,24 @@ jobs:
               -t "$repo_path" \
               -f "$dockerfile" "$dockerfile_path"
 
-            # Push the Docker image to the GitHub Container Registry
+            echo "Pushing image: $repo_path"
             docker push "$repo_path"
 
-            echo "Scanning $image_name..."
+            # Get the pushed digest (needed for attestations)
+            digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$repo_path")
+            digests+=("$digest")
 
-            # Run Trivy scan on the built image and save results in SARIF format
+            echo "Scanning $image_name with Trivy..."
             trivy image --severity CRITICAL,HIGH --format sarif --output "trivy-results/${package_name}.sarif" "$repo_path"
 
+            echo "Generating SBOM for $repo_path..."
+            sbom_file="sboms/sbom-${package_name}.json"
+            echo "$digest|$sbom_file" >> sboms/index.txt
           done
+
+          # Save digest and sbom file mapping for later steps
+          echo "digests_and_sboms=$(cat sboms/index.txt | base64 -w0)" >> $GITHUB_OUTPUT
+
 
       # Step 5: Upload SARIF file to GitHub Code Scanning
       - name: Upload SARIF to GitHub Code Scanning
