@@ -2,8 +2,6 @@
 
 A minimal, pinned Ubuntu-based container that **monitors Azure project spend** and can enforce budget limits by **disabling a Customer-Managed Key (CMK)** in **Azure Key Vault**. Intended to run non-interactively (cron/ACI/Kubernetes Job) using a **Managed Identity**.
 
----
-
 > **Architecture**: This image **must be built and published as `linux/amd64`**. All build/push commands below include `--platform linux/amd64`. Keep it single-arch unless you’ve validated multi-arch at runtime.
 
 ---
