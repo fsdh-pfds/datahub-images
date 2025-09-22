@@ -165,6 +165,24 @@ jobs:
           # Save digest and sbom file mapping for later steps
           echo "digests_and_sboms=$(cat sboms/index.txt | base64 -w0)" >> $GITHUB_OUTPUT
 
+      - name: Generate SBOMs with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ github.repository_owner }}/*:latest
+          output-file: sboms/sbom-${{ github.sha }}.json
+          format: cyclonedx-json
+
+      - name: Attest SBOMs
+        uses: actions/attest-sbom@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository_owner }}/my-image
+          sbom-path: sboms/sbom-${{ github.sha }}.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms
+          path: sboms/
 
       # Step 5: Upload SARIF file to GitHub Code Scanning
       - name: Upload SARIF to GitHub Code Scanning
