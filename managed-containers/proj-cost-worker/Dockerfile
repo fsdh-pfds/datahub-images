@@ -1,7 +1,7 @@
 FROM ubuntu:24.04@sha256:6015f66923d7afbc53558d7ccffd325d43b4e249f41a6e93eef074c9505d2233
-LABEL org.opencontainers.image.description="Container Job to rorate Storage Account SAS tokens"
+LABEL org.opencontainers.image.description="Container Job to calculating resourcegroup costs"
 LABEL org.opencontainers.image.source="https://github.com/fsdh-pfds/datahub-images"
-LABEL org.opencontainers.image.url="https://github.com/fsdh-pfds/datahub-images/blob/main/managed-containers/proj-sas-worker/README.md"
+LABEL org.opencontainers.image.url="https://github.com/fsdh-pfds/datahub-images/blob/main/managed-containers/proj-cost-worker/README.md"
 
 # Enable headless mode
 ENV DEBIAN_FRONTEND=noninteractive
