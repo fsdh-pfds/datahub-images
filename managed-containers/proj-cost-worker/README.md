@@ -1,6 +1,6 @@
 # proj-cost-worker
 
-A minimal, pinned Ubuntu-based container that **monitors Azure project spend** and can enforce budget limits by **disabling a Customer-Managed Key (CMK)** in **Azure Key Vault**. Intended to run non-interactively (cron/ACI/Kubernetes Job) using a **Managed Identity**.
+A minimal, pinned Ubuntu-based container that **monitors Azure project spend** and can enforce budget limits by **disabling a Customer-Managed Key (CMK)** in **Azure Key Vault**. Intended to run non-interactively (cron/ACI/Kubernetes Job) using a **Managed Identity** .
 
 ---
 
