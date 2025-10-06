@@ -40,3 +40,76 @@ jobs:
             echo "$changed_files_json"
             echo '__JSON__'
           } >> "$GITHUB_OUTPUT"
+
+
+      - name: Build Dockerfile set & matrix
+        id: mk-matrix
+        run: |
+          set -euo pipefail
+
+          changed_files_json='${{ steps.changed.outputs.changed_files }}'
+
+          # Derive unique component roots: managed-containers/<component>
+          components="$(
+            echo "$changed_files_json" \
+            | jq -r '.[]' \
+            | awk -F/ '/^managed-containers\// && NF>=2 {print $1"/"$2}' \
+            | awk '!seen[$0]++'
+          )"
+
+          dockerfiles_list_raw=""
+
+          # Include top-level Dockerfile per component if present
+          while IFS= read -r comp; do
+            [ -z "$comp" ] && continue
+            if [ -f "$comp/Dockerfile" ]; then
+              dockerfiles_list_raw+="$comp/Dockerfile"$'\n'
+            fi
+          done <<< "$components"
+
+          # Also include any Dockerfiles that were themselves changed (nested images)
+          direct_dockerfiles="$(
+            echo "$changed_files_json" | jq -r '.[]' | grep -E '(^|/)[Dd]ockerfile$' || true
+          )"
+          dockerfiles_list_raw+="$direct_dockerfiles"$'\n'
+
+          # Normalize paths and dedupe while preserving first-seen order
+          normalized_paths="$(
+            printf '%s' "$dockerfiles_list_raw" \
+            | sed '/^$/d; s#^\./##; s#/\+#/#g' \
+            | while IFS= read -r p; do
+                [ -z "$p" ] && continue
+                # -m: normalize ../ and . even if path doesn't exist
+                realpath -m -- "$p"
+              done
+          )"
+
+          dockerfiles_all="$(printf '%s\n' "$normalized_paths" | awk '!seen[$0]++')"
+          count="$(printf '%s\n' "$dockerfiles_all" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+          echo "Found $count Dockerfile(s) to build:"
+          printf '%s\n' "$dockerfiles_all"
+
+          if [ "$count" -eq 0 ]; then
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Build matrix include array
+          matrix_json=$(
+            while IFS= read -r dockerfile; do
+              [ -z "$dockerfile" ] && continue
+              context="$(dirname -- "$dockerfile")"
+              image_name="$(basename -- "$context" | tr '[:upper:]' '[:lower:]'):latest"
+              printf '{"dockerfile":"%s","context":"%s","image":"%s"}\n' \
+                "$dockerfile" "$context" "$image_name"
+            done <<< "$dockerfiles_all" | jq -s '{include: .}'
+          )
+
+          {
+            echo 'matrix<<__JSON__'
+            echo "$matrix_json"
+            echo '__JSON__'
+          } >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
