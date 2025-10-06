@@ -134,6 +134,11 @@ jobs:
       matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     steps:
 
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+          
       - name: Check for JFrog registry usage
         id: check-jfrog
         run: |
@@ -166,10 +171,7 @@ jobs:
           username: ${{ steps.setup-jfrog-cli.outputs.oidc-user }}
           password: ${{ steps.setup-jfrog-cli.outputs.oidc-token }}
 
-      - name: Checkout
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-        with:
-          fetch-depth: 0
+
 
       - name: Validate top-level folder (no spaces under managed-containers/)
         run: |
