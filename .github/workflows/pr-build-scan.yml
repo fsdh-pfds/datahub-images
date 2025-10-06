@@ -134,6 +134,23 @@ jobs:
       matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     steps:
 
+      - name: Debug GitHub OIDC token
+        run: |
+          echo "🔹 Requesting OIDC token..."
+          TOKEN=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL?audience=debug" | jq -r '.value')
+
+          echo ""
+          echo "🔹 JWT Header:"
+          echo "$TOKEN" | cut -d '.' -f1 | base64 --decode | jq .
+          echo ""
+          echo "🔹 JWT Payload (claims):"
+          echo "$TOKEN" | cut -d '.' -f2 | base64 --decode | jq .
+          echo ""
+          echo "🔹 Signature:"
+          echo "$TOKEN" | cut -d '.' -f3
+
+
       - name: Setup JFrog CLI (OIDC)
         id: setup-jfrog-cli
         uses: jfrog/setup-jfrog-cli@v4
