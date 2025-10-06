@@ -113,3 +113,43 @@ jobs:
             echo '__JSON__'
           } >> "$GITHUB_OUTPUT"
           echo "count=$count" >> "$GITHUB_OUTPUT"
+
+  build-and-scan:
+    needs: [prepare-matrix]
+    if: ${{ fromJson(needs.prepare-matrix.outputs.count) > 0 }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # max-parallel: 3  # <- uncomment to throttle concurrency
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
+
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@ff1b8b060f23b650436d419b5e13f67f5d4c3087 # v0.2.2
+
+      - name: Build image
+        run: |
+          set -euo pipefail
+          echo "Building ${{ matrix.image }} from ${{ matrix.dockerfile }} (context: ${{ matrix.context }})"
+          docker buildx build \
+            --load \
+            --no-cache \
+            -t "${{ matrix.image }}" \
+            -f "${{ matrix.dockerfile }}" \
+            "${{ matrix.context }}"
+
+      - name: Scan (Trivy, CRITICAL only)
+        run: |
+          set -euo pipefail
+          img="${{ matrix.image }}"
+          echo "Saving and scanning image: $img"
+          docker save "$img" -o image.tar
+          trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input image.tar
+          rm -f image.tar
