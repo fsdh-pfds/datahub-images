@@ -122,6 +122,9 @@ jobs:
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
   build-and-scan:
+
+    permissions:
+      id-token: write
     needs: [prepare-matrix]
     if: ${{ fromJson(needs.prepare-matrix.outputs.count) > 0 }}
     runs-on: ubuntu-latest
