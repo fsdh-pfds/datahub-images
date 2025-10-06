@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Compute changed files (JSON, NUL-safe)
+      - name: Generated Changed Files JSON
         id: changed
         run: |
           set -euo pipefail
@@ -43,7 +43,7 @@ jobs:
             echo '__JSON__'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build Dockerfile set & matrix
+      - name: Generated associated effected Dockerfiles. 
         id: mk-matrix
         run: |
           set -euo pipefail
@@ -130,31 +130,28 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # max-parallel: 3  # <- uncomment to throttle concurrency
+      # max-parallel: 3
       matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     steps:
 
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-        with:
-          fetch-depth: 0
-          
-      - name: Check for JFrog registry usage
+
+      - name: Check for GC Secure Artifacts usage
         id: check-jfrog
         run: |
           set -euo pipefail
           dockerfile="${{ matrix.dockerfile }}"
 
-          echo "Checking for JFrog usage in: $dockerfile"
           if grep -Eq '^[[:space:]]*FROM[[:space:]]+artifacts-artefacts\.devops\.cloud-nuage\.canada\.ca/' "$dockerfile"; then
-            echo "✅ Detected JFrog base image reference"
+            echo "Detected JFrog base image reference"
             echo "uses_jfrog=true" >> "$GITHUB_OUTPUT"
           else
-            echo "ℹ️ No JFrog base image found"
+            echo "No JFrog base image found"
             echo "uses_jfrog=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Setup JFrog CLI (OIDC)
+      - name: Setup GC Secure Artifacts and JFrog CLI
         if: ${{ steps.check-jfrog.outputs.uses_jfrog == 'true' }}
         id: setup-jfrog-cli
         uses: jfrog/setup-jfrog-cli@v4
@@ -163,15 +160,13 @@ jobs:
         with:
           oidc-provider-name: github-oidc
 
-      - name: Jfrog Docker login
+      - name: GC Secure Artifacts Docker login
         if: ${{ steps.check-jfrog.outputs.uses_jfrog == 'true' }}
         uses: docker/login-action@v3
         with:
           registry: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
           username: ${{ steps.setup-jfrog-cli.outputs.oidc-user }}
           password: ${{ steps.setup-jfrog-cli.outputs.oidc-token }}
-
-
 
       - name: Validate top-level folder (no spaces under managed-containers/)
         run: |
