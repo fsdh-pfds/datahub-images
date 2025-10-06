@@ -134,24 +134,23 @@ jobs:
       matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     steps:
 
-      - name: Debug GitHub OIDC token
+      - name: Check for JFrog registry usage
+        id: check-jfrog
         run: |
-          echo "🔹 Requesting OIDC token..."
-          TOKEN=$(curl -s -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL?audience=debug" | jq -r '.value')
+          set -euo pipefail
+          dockerfile="${{ matrix.dockerfile }}"
 
-          echo ""
-          echo "🔹 JWT Header:"
-          echo "$TOKEN" | cut -d '.' -f1 | base64 --decode | jq .
-          echo ""
-          echo "🔹 JWT Payload (claims):"
-          echo "$TOKEN" | cut -d '.' -f2 | base64 --decode | jq .
-          echo ""
-          echo "🔹 Signature:"
-          echo "$TOKEN" | cut -d '.' -f3
-
+          echo "Checking for JFrog usage in: $dockerfile"
+          if grep -Eq '^[[:space:]]*FROM[[:space:]]+artifacts-artefacts\.devops\.cloud-nuage\.canada\.ca/' "$dockerfile"; then
+            echo "✅ Detected JFrog base image reference"
+            echo "uses_jfrog=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ℹ️ No JFrog base image found"
+            echo "uses_jfrog=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup JFrog CLI (OIDC)
+        if: ${{ steps.check-jfrog.outputs.uses_jfrog == 'true' }}
         id: setup-jfrog-cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
@@ -160,6 +159,7 @@ jobs:
           oidc-provider-name: github-oidc
 
       - name: Jfrog Docker login
+        if: ${{ steps.check-jfrog.outputs.uses_jfrog == 'true' }}
         uses: docker/login-action@v3
         with:
           registry: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
