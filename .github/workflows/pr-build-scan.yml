@@ -41,7 +41,6 @@ jobs:
             echo '__JSON__'
           } >> "$GITHUB_OUTPUT"
 
-
       - name: Build Dockerfile set & matrix
         id: mk-matrix
         run: |
@@ -96,12 +95,18 @@ jobs:
             exit 0
           fi
 
-          # Build matrix include array
+          # Build matrix include array; sanitize image tag to be Docker-safe
+          # Docker refname allowed: [a-z0-9._-] and must start with [a-z0-9]
           matrix_json=$(
             while IFS= read -r dockerfile; do
               [ -z "$dockerfile" ] && continue
               context="$(dirname -- "$dockerfile")"
-              image_name="$(basename -- "$context" | tr '[:upper:]' '[:lower:]'):latest"
+              base="$(basename -- "$context")"
+              safe_base="$(printf '%s' "$base" \
+                | tr '[:upper:]' '[:lower:]' \
+                | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-{2,}/-/g')"
+              [ -z "$safe_base" ] && safe_base="image"
+              image_name="${safe_base}:latest"
               printf '{"dockerfile":"%s","context":"%s","image":"%s"}\n' \
                 "$dockerfile" "$context" "$image_name"
             done <<< "$dockerfiles_all" | jq -s '{include: .}'
