@@ -84,7 +84,6 @@ def scan_blob(blob_client, blob_full_name, clamav_socket):
 
     return chunk_infected
 
-
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
     blob_url = json_data["data"]["blobUrl"]
@@ -109,21 +108,23 @@ def process_message(message):
     clamav_socket = pyclamd.ClamdUnixSocket()
 
     if scan_blob(blob_client, blob_name_full, clamav_socket) > 0:
-        blob_client.delete_blob()
         print(f"FSDH - Infected blob {blob_name_full}")
 
-        # Create marker in infected container
-        infected_blob_client = blob_service_client.get_blob_client(
-            container=config["quarantine_container_name"],
-            blob=blob_name_in_container,
-        )
-        infected_blob_client.upload_blob(
-            io.BytesIO(
-                "This file was removed by FSDH due to potential threat | "
-                "Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")
-            ),
-            overwrite=True,
-        )
+        try:
+            # Create marker in infected container
+            infected_blob_client = blob_service_client.get_blob_client(
+                container=config["quarantine_container_name"],
+                blob=blob_name_in_container,
+            )
+
+            if infected_blob_client.exists():
+                print(f"FSDH - blob {blob_name_in_container} already exists in quarantine container, deleting")
+                infected_blob_client.delete_blob()
+
+            print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
+            copy_props = infected_blob_client.start_copy_from_url(blob_client.url)
+        finally:
+            blob_client.delete_blob()
     else:
         more_blob_metadata = {"avscan": "ok"}
         blob_metadata = blob_client.get_blob_properties().metadata
