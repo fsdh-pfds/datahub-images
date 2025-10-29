@@ -11,6 +11,7 @@ import tempfile
 import pyclamd
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
+from azure.data.tables import TableServiceClient
 
 CHUNK_SIZE = 1024 * 1024 * 1024 * 1
 
@@ -34,13 +35,15 @@ queue_client = QueueClient.from_connection_string(
 
 blob_service_client = BlobServiceClient.from_connection_string(config["storage_connection_string"])
 
+table_service_client = TableServiceClient.from_connection_string(config["storage_connection_string"])
+
 
 def scan_blob(blob_client, blob_full_name, clamav_socket):
     blob_properties = blob_client.get_blob_properties()
     blob_size = blob_properties.size
     chunk_start = 0
     chunk_index = 0
-    chunk_infected = 0
+    threats = []
 
     while chunk_start < blob_size:
         chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
@@ -68,6 +71,7 @@ def scan_blob(blob_client, blob_full_name, clamav_socket):
                     if status == "FOUND":
                         threat_found += 1
                         print("FSDH - chunk result FOUND: " + blob_full_name + f" chunk {chunk_index} {fname} {virus}")
+                        threats.append(virus)
                     elif status == "OK":
                         print("FSDH - chunk result OK: " + blob_full_name + f" chunk {chunk_index} {fname}")
                     else:
@@ -75,14 +79,14 @@ def scan_blob(blob_client, blob_full_name, clamav_socket):
 
             if (threat_found > 0) or "clamavtest2025a" in blob_full_name:
                 print(f"FSDH - Infected blob chunk {chunk_index}: {blob_full_name}")
-                chunk_infected += 1
                 break
             print(f"FSDH - blob chunk {chunk_index} is clean: {blob_full_name}")
 
         chunk_start += CHUNK_SIZE
         chunk_index += 1
 
-    return chunk_infected
+    return threats
+
 
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
@@ -107,7 +111,8 @@ def process_message(message):
 
     clamav_socket = pyclamd.ClamdUnixSocket()
 
-    if scan_blob(blob_client, blob_name_full, clamav_socket) > 0:
+    scan_result = scan_blob(blob_client, blob_name_full, clamav_socket)
+    if scan_result != None and len(scan_result) > 0:
         print(f"FSDH - Infected blob {blob_name_full}")
 
         try:
@@ -122,7 +127,25 @@ def process_message(message):
                 infected_blob_client.delete_blob()
 
             print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
-            copy_props = infected_blob_client.start_copy_from_url(blob_client.url)
+            infected_blob_client.start_copy_from_url(blob_client.url)
+
+            print(f"FSDH - insert into storage table for {blob_name_in_container}")
+            table_client = table_service_client.get_table_client(table_name="infectedfiles")
+
+            try:
+                entity = {
+                    "PartitionKey": blob_name_in_container,
+                    "RowKey": blob_client.get_blob_properties().last_modified,
+                    "originalUri": blob_client.url,
+                    "quarrantineUrl": infected_blob_client.url,
+                    "size": blob_client.get_blob_properties().size,
+                    "threats": json.dumps(scan_result),
+                }
+                response = table_client.upsert_entity(entity)
+                print(f"FSDH - insert into table for {blob_name_in_container} with response {response}")
+            except Exception as e:
+                print(f"Error inserting to table: {e}")
+
         finally:
             blob_client.delete_blob()
     else:
