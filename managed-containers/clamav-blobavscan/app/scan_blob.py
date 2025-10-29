@@ -136,7 +136,7 @@ def process_message(message):
                 entity = {
                     "PartitionKey": blob_name_in_container,
                     "RowKey": blob_client.get_blob_properties().last_modified,
-                    "originalUri": blob_client.url,
+                    "originalUrl": blob_client.url,
                     "quarrantineUrl": infected_blob_client.url,
                     "size": blob_client.get_blob_properties().size,
                     "threats": json.dumps(scan_result),
