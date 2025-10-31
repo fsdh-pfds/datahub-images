@@ -113,7 +113,7 @@ def process_message(message):
 
     scan_start_time = time.time()
     scan_result = scan_blob(blob_client, blob_name_full, clamav_socket)
-    scan_time_ms = (time.time() - scan_start_time ) * 1000
+    scan_time = (time.time() - scan_start_time )
     if scan_result != None and len(scan_result) > 0:
         print(f"FSDH - Infected blob {blob_name_full}")
 
@@ -131,7 +131,7 @@ def process_message(message):
             print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
             copy_time_start = time.time()
             infected_blob_client.start_copy_from_url(blob_client.url)
-            copy_time_ms = (time.time() - copy_time_start) * 1000
+            copy_time = (time.time() - copy_time_start)
 
             print(f"FSDH - insert into storage table for {blob_name_in_container}")
             table_client = table_service_client.get_table_client(table_name="infectedfiles")
@@ -142,10 +142,10 @@ def process_message(message):
                     "RowKey": blob_client.get_blob_properties().last_modified,
                     "originalUrl": blob_client.url,
                     "quarrantineUrl": infected_blob_client.url,
-                    "size": blob_client.get_blob_properties().size,
+                    "size_mb": round(blob_client.get_blob_properties().size / 1024 / 1024),
                     "threats": json.dumps(scan_result),
-                    "scan_time_ms": round(scan_time_ms),
-                    "copy_time_ms": round(copy_time_ms),
+                    "scan_time_s": round(scan_time),
+                    "copy_time_s": round(copy_time),
                 }
                 response = table_client.upsert_entity(entity)
                 print(f"FSDH - insert into table for {blob_name_in_container} with response {response}")
