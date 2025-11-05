@@ -96,9 +96,7 @@ def split_blob_path(blob_name_full: str) -> tuple[str, str, str]:
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
     blob_name_container, blob_name_in_container, blob_name_full = split_blob_path(json_data["subject"])
-
     blob_url = json_data["data"]["blobUrl"]
-    blob_name_parts = blob_name_full.strip("/").split("/")
 
     print("FSDH - processing blob: " + blob_name_full)
 
