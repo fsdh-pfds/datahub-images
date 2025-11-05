@@ -87,11 +87,13 @@ def scan_blob(blob_client, blob_full_name, clamav_socket):
 
     return threats
 
+
 def split_blob_path(blob_name_full: str) -> tuple[str, str, str]:
     parts = blob_name_full.strip("/").split("/")
     container = parts[3]
     blob_in_container = "/".join(parts[5:])
     return container, blob_in_container, blob_name_full
+
 
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
@@ -152,7 +154,7 @@ def process_message(message):
                 }
                 response = table_client.upsert_entity(entity)
                 print(f"FSDH - insert into table for {blob_name_in_container} with response {response}")
-            except Exception as e: # pylint: disable=broad-exception-caught
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 print(f"Error inserting to table: {e}")
 
         finally:
