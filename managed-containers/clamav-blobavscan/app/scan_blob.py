@@ -3,15 +3,15 @@
 # pylint: disable=import-error
 
 import base64
-import time
 import json
 import os
 import tempfile
+import time
 
 import pyclamd
+from azure.data.tables import TableServiceClient
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
-from azure.data.tables import TableServiceClient
 
 CHUNK_SIZE = 1024 * 1024 * 1024 * 1
 
