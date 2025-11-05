@@ -114,7 +114,7 @@ def process_message(message):
     scan_start_time = time.time()
     scan_result = scan_blob(blob_client, blob_name_full, clamav_socket)
     scan_time = (time.time() - scan_start_time )
-    if scan_result != None and len(scan_result) > 0:
+    if scan_result:
         print(f"FSDH - Infected blob {blob_name_full}")
 
         try:
