@@ -1,1 +1,0 @@
-FROM ghcr.io/ssc-sp/datahub-portal/datahub-portal:dev-latest
