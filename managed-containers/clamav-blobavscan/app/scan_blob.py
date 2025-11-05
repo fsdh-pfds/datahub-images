@@ -113,7 +113,7 @@ def process_message(message):
 
     scan_start_time = time.time()
     scan_result = scan_blob(blob_client, blob_name_full, clamav_socket)
-    scan_time = (time.time() - scan_start_time )
+    scan_time = time.time() - scan_start_time
     if scan_result:
         print(f"FSDH - Infected blob {blob_name_full}")
 
@@ -131,7 +131,7 @@ def process_message(message):
             print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
             copy_time_start = time.time()
             infected_blob_client.start_copy_from_url(blob_client.url)
-            copy_time = (time.time() - copy_time_start)
+            copy_time = time.time() - copy_time_start
 
             print(f"FSDH - insert into storage table for {blob_name_in_container}")
             table_client = table_service_client.get_table_client(table_name="infectedfiles")
