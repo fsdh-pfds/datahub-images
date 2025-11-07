@@ -23,6 +23,7 @@ def get_config():
         "quarantine_container_name": os.getenv("quarantine_container_name") or "datahub-quarantine",
         "datahub_container_name": os.getenv("container_name") or "datahub",
         "WORK_DIR": os.getenv("WORK_DIR") or "/datahub-temp",
+        "ENABLE_QUARANTINE": os.getenv("ENABLE_QUARANTINE") or "false",
     }
 
 
@@ -133,9 +134,10 @@ def process_message(message):
                 print(f"FSDH - blob {blob_name_in_container} already exists in quarantine container, deleting")
                 infected_blob_client.delete_blob()
 
-            print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
             copy_time_start = time.time()
-            infected_blob_client.start_copy_from_url(blob_client.url)
+            if config["ENABLE_QUARANTINE"].lower() == "true":
+                print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
+                infected_blob_client.start_copy_from_url(blob_client.url)
             copy_time = time.time() - copy_time_start
 
             print(f"FSDH - insert into storage table for {blob_name_in_container}")
