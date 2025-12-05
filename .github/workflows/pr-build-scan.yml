@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.mk-matrix.outputs.matrix }}
-      count:  ${{ steps.mk-matrix.outputs.count }}
+      count: ${{ steps.mk-matrix.outputs.count }}
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
@@ -43,7 +43,7 @@ jobs:
             echo '__JSON__'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Generated associated effected Dockerfiles. 
+      - name: Generated associated effected Dockerfiles.
         id: mk-matrix
         run: |
           set -euo pipefail
@@ -122,7 +122,6 @@ jobs:
           echo "count=$count" >> "$GITHUB_OUTPUT"
 
   build-and-scan:
-
     permissions:
       id-token: write
     needs: [prepare-matrix]
@@ -133,7 +132,6 @@ jobs:
       # max-parallel: 3
       matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
     steps:
-
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
