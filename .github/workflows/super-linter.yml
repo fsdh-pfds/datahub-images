@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Super-linter
         uses: super-linter/super-linter/slim@502f4fe48a81a392756e173e39a861f8c8efe056 # v8.3.0
@@ -32,6 +33,8 @@ jobs:
           VALIDATE_CHECKOV: false
           VALIDATE_JSCPD: false
           VALIDATE_PYTHON_PYINK: false
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
           SUPPRESS_POSSUM: true
           LINTER_RULES_PATH: /
           PYTHON_BLACK_CONFIG_FILE: pyproject.toml
