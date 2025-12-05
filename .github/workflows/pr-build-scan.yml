@@ -15,6 +15,8 @@ jobs:
     outputs:
       matrix: ${{ steps.mk-matrix.outputs.matrix }}
       count: ${{ steps.mk-matrix.outputs.count }}
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
@@ -135,8 +137,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
-      - name: Check for GC Secure Artifacts usage
-        id: check-jfrog
+      - name: Setup JFrog CLI (OIDC)
+        id: setup-jfrog-cli
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
+        with:
+          oidc-provider-name: github-oidc
+
+      - name: Secure GC Artifacts login
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        with:
+          registry: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
+          username: ${{ steps.setup-jfrog-cli.outputs.oidc-user }}
+          password: ${{ steps.setup-jfrog-cli.outputs.oidc-token }}
+
+      - name: Build and Scan Docker Images
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           dockerfile="${{ matrix.dockerfile }}"

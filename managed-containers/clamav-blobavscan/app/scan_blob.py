@@ -3,12 +3,13 @@
 # pylint: disable=import-error
 
 import base64
-import io
 import json
 import os
 import tempfile
+import time
 
 import pyclamd
+from azure.data.tables import TableServiceClient
 from azure.storage.blob import BlobServiceClient
 from azure.storage.queue import QueueClient
 
@@ -34,13 +35,15 @@ queue_client = QueueClient.from_connection_string(
 
 blob_service_client = BlobServiceClient.from_connection_string(config["storage_connection_string"])
 
+table_service_client = TableServiceClient.from_connection_string(config["storage_connection_string"])
+
 
 def scan_blob(blob_client, blob_full_name, clamav_socket):
     blob_properties = blob_client.get_blob_properties()
     blob_size = blob_properties.size
     chunk_start = 0
     chunk_index = 0
-    chunk_infected = 0
+    threats = []
 
     while chunk_start < blob_size:
         chunk_end = min(chunk_start + CHUNK_SIZE, blob_size) - 1
@@ -68,6 +71,7 @@ def scan_blob(blob_client, blob_full_name, clamav_socket):
                     if status == "FOUND":
                         threat_found += 1
                         print("FSDH - chunk result FOUND: " + blob_full_name + f" chunk {chunk_index} {fname} {virus}")
+                        threats.append(virus)
                     elif status == "OK":
                         print("FSDH - chunk result OK: " + blob_full_name + f" chunk {chunk_index} {fname}")
                     else:
@@ -75,23 +79,27 @@ def scan_blob(blob_client, blob_full_name, clamav_socket):
 
             if (threat_found > 0) or "clamavtest2025a" in blob_full_name:
                 print(f"FSDH - Infected blob chunk {chunk_index}: {blob_full_name}")
-                chunk_infected += 1
                 break
             print(f"FSDH - blob chunk {chunk_index} is clean: {blob_full_name}")
 
         chunk_start += CHUNK_SIZE
         chunk_index += 1
 
-    return chunk_infected
+    return threats
+
+
+def split_blob_path(blob_name_full: str) -> tuple[str, str, str]:
+    parts = blob_name_full.strip("/").split("/")
+    container = parts[3]
+    blob_in_container = "/".join(parts[5:])
+    return container, blob_in_container, blob_name_full
 
 
 def process_message(message):
     json_data = json.loads(base64.b64decode(message.content))
+    blob_name_container, blob_name_in_container, blob_name_full = split_blob_path(json_data["subject"])
     blob_url = json_data["data"]["blobUrl"]
-    blob_name_full = json_data["subject"]
-    blob_name_parts = blob_name_full.strip("/").split("/")
-    blob_name_container = blob_name_parts[3]
-    blob_name_in_container = "/".join(blob_name_parts[5:])
+
     print("FSDH - processing blob: " + blob_name_full)
 
     if config["datahub_container_name"].lower() != blob_name_container:
@@ -108,22 +116,49 @@ def process_message(message):
 
     clamav_socket = pyclamd.ClamdUnixSocket()
 
-    if scan_blob(blob_client, blob_name_full, clamav_socket) > 0:
-        blob_client.delete_blob()
+    scan_start_time = time.time()
+    scan_result = scan_blob(blob_client, blob_name_full, clamav_socket)
+    scan_time = time.time() - scan_start_time
+    if scan_result:
         print(f"FSDH - Infected blob {blob_name_full}")
 
-        # Create marker in infected container
-        infected_blob_client = blob_service_client.get_blob_client(
-            container=config["quarantine_container_name"],
-            blob=blob_name_in_container,
-        )
-        infected_blob_client.upload_blob(
-            io.BytesIO(
-                "This file was removed by FSDH due to potential threat | "
-                "Ce fichier a été supprimé par PFDS en raison d'une menace potentielle. ".encode("utf-8")
-            ),
-            overwrite=True,
-        )
+        try:
+            # Create marker in infected container
+            infected_blob_client = blob_service_client.get_blob_client(
+                container=config["quarantine_container_name"],
+                blob=blob_name_in_container,
+            )
+
+            if infected_blob_client.exists():
+                print(f"FSDH - blob {blob_name_in_container} already exists in quarantine container, deleting")
+                infected_blob_client.delete_blob()
+
+            print(f"FSDH - copying blob {blob_name_in_container} to quarantine container ")
+            copy_time_start = time.time()
+            infected_blob_client.start_copy_from_url(blob_client.url)
+            copy_time = time.time() - copy_time_start
+
+            print(f"FSDH - insert into storage table for {blob_name_in_container}")
+            table_client = table_service_client.get_table_client(table_name="infectedfiles")
+
+            try:
+                entity = {
+                    "PartitionKey": blob_name_in_container,
+                    "RowKey": blob_client.get_blob_properties().last_modified,
+                    "originalUrl": blob_client.url,
+                    "quarrantineUrl": infected_blob_client.url,
+                    "size_mb": round(blob_client.get_blob_properties().size / 1024 / 1024),
+                    "threats": json.dumps(scan_result),
+                    "scan_time_s": round(scan_time),
+                    "copy_time_s": round(copy_time),
+                }
+                response = table_client.upsert_entity(entity)
+                print(f"FSDH - insert into table for {blob_name_in_container} with response {response}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                print(f"Error inserting to table: {e}")
+
+        finally:
+            blob_client.delete_blob()
     else:
         more_blob_metadata = {"avscan": "ok"}
         blob_metadata = blob_client.get_blob_properties().metadata
