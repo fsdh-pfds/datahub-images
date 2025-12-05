@@ -1,4 +1,3 @@
----
 name: Pull Request - Build and Scan
 
 on:
@@ -11,84 +10,149 @@ on:
 permissions: read-all
 
 jobs:
-  build-and-scan:
+  prepare-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.mk-matrix.outputs.matrix }}
+      count: ${{ steps.mk-matrix.outputs.count }}
     permissions:
       id-token: write
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
-          fetch-depth: 0 # Fetch full history to get commit information, useful for getting details of previous commits
+          fetch-depth: 0
 
-      - name: Get list of changed files
-        id: get_changed_files
+      - name: Generated Changed Files JSON
+        id: changed
         run: |
-          # Get the list of changed files between the base and head of the pull request
-          changed_files=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
-          # Convert the list of changed files to a JSON array
-          changed_files_json=$(echo "$changed_files" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.sha }}"
 
-          echo "Changed files: $changed_files"
+          # Use -z for NUL-delimited robustness; also filter to managed-containers/**
+          changed_files_json="$(
+            git diff --name-only -z "$base" "$head" -- 'managed-containers/**' \
+            | jq -Rs 'split("\u0000") | map(select(length>0))'
+          )"
 
-          # Set the JSON string as an output for use in later steps
-          echo "changed_files=$changed_files_json" >> "$GITHUB_OUTPUT"
+          echo "Changed files JSON:"
+          echo "$changed_files_json" | jq '.'
 
-      - name: Generate list of Dockerfiles to build
-        id: generate_dockerfile_list
+          {
+            echo 'changed_files<<__JSON__'
+            echo "$changed_files_json"
+            echo '__JSON__'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generated associated effected Dockerfiles.
+        id: mk-matrix
         run: |
-          # Get the JSON array of changed files from the previous step
-          changed_files_json='${{ steps.get_changed_files.outputs.changed_files }}'
+          set -euo pipefail
 
-          # Convert JSON array to a bash array
-          mapfile -t changed_files_list < <(echo "$changed_files_json" | jq -r '.[]')
+          changed_files_json='${{ steps.changed.outputs.changed_files }}'
 
-          dockerfiles_to_build=()
-          for file in "${changed_files_list[@]}"; do
-            # Check if the changed file is a Dockerfile
-            if [[ $file == *Dockerfile ]]; then
-              dockerfiles_to_build+=("$file")
-            # Check if the directory of the changed file contains a Dockerfile
-            elif [[ -f $(dirname "$file")/Dockerfile ]]; then
-              dockerfiles_to_build+=("$(dirname "$file")/Dockerfile")
+          # Derive unique component roots: managed-containers/<component>
+          components="$(
+            echo "$changed_files_json" \
+            | jq -r '.[]' \
+            | awk -F/ '/^managed-containers\// && NF>=2 {print $1"/"$2}' \
+            | awk '!seen[$0]++'
+          )"
+
+          dockerfiles_list_raw=""
+
+          # Include top-level Dockerfile per component if present
+          while IFS= read -r comp; do
+            [ -z "$comp" ] && continue
+            if [ -f "$comp/Dockerfile" ]; then
+              dockerfiles_list_raw+="$comp/Dockerfile"$'\n'
             fi
+          done <<< "$components"
 
-            # Check if the file is in managed-containers and add the top-level Dockerfile if it exists
-            if [[ $file == managed-containers/*/* ]]; then
-              # Extract the top-level directory (e.g., managed-containers/component)
-              top_level_dir=$(echo "$file" | cut -d'/' -f1-2)
-              if [[ -f "$top_level_dir/Dockerfile" ]]; then
-                dockerfiles_to_build+=("$top_level_dir/Dockerfile")
-              fi
-            fi
-          done
+          # Also include any Dockerfiles that were themselves changed (nested images)
+          direct_dockerfiles="$(
+            echo "$changed_files_json" | jq -r '.[]' | grep -E '(^|/)[Dd]ockerfile$' || true
+          )"
+          dockerfiles_list_raw+="$direct_dockerfiles"$'\n'
 
-          # Remove duplicate Dockerfiles from the list
-          mapfile -t unique_dockerfiles_to_build < <(printf "%s\n" "${dockerfiles_to_build[@]}" | sort -u)
+          # Normalize paths and dedupe while preserving first-seen order
+          normalized_paths="$(
+            printf '%s' "$dockerfiles_list_raw" \
+            | sed '/^$/d; s#^\./##; s#/\+#/#g' \
+            | while IFS= read -r p; do
+                [ -z "$p" ] && continue
+                # -m: normalize ../ and . even if path doesn't exist
+                realpath -m -- "$p"
+              done
+          )"
 
-          # Exit if no Dockerfiles are found
-          if [ ${#unique_dockerfiles_to_build[@]} -eq 0 ]; then
-            echo "No Dockerfiles found to build. Exiting..."
+          dockerfiles_all="$(printf '%s\n' "$normalized_paths" | awk '!seen[$0]++')"
+          count="$(printf '%s\n' "$dockerfiles_all" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+          echo "Found $count Dockerfile(s) to build:"
+          printf '%s\n' "$dockerfiles_all"
+
+          if [ "$count" -eq 0 ]; then
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+            echo "count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          echo "Unique Dockerfiles to build: ${unique_dockerfiles_to_build[*]}"
+          # Build matrix include array; sanitize image tag to be Docker-safe
+          # Docker refname allowed: [a-z0-9._-] and must start with [a-z0-9]
+          matrix_json=$(
+            while IFS= read -r dockerfile; do
+              [ -z "$dockerfile" ] && continue
+              context="$(dirname -- "$dockerfile")"
+              base="$(basename -- "$context")"
+              safe_base="$(printf '%s' "$base" \
+                | tr '[:upper:]' '[:lower:]' \
+                | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//; s/-{2,}/-/g')"
+              [ -z "$safe_base" ] && safe_base="image"
+              image_name="${safe_base}:latest"
+              printf '{"dockerfile":"%s","context":"%s","image":"%s"}\n' \
+                "$dockerfile" "$context" "$image_name"
+            done <<< "$dockerfiles_all" | jq -s '{include: .}'
+          )
 
-          # Convert the list of unique Dockerfiles to a JSON array for output
-          unique_dockerfiles_to_build_json=$(printf '%s\n' "${unique_dockerfiles_to_build[@]}" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          {
+            echo 'matrix<<__JSON__'
+            echo "$matrix_json"
+            echo '__JSON__'
+          } >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
 
-          # Set the JSON string as an output for use in later steps
-          echo "dockerfiles_to_build=$unique_dockerfiles_to_build_json" >> "$GITHUB_OUTPUT"
+  build-and-scan:
+    permissions:
+      id-token: write
+    needs: [prepare-matrix]
+    if: ${{ fromJson(needs.prepare-matrix.outputs.count) > 0 }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # max-parallel: 3
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
-      - name: Set up Trivy
-        uses: aquasecurity/setup-trivy@ff1b8b060f23b650436d419b5e13f67f5d4c3087 # v0.2.2
-        # Set up Trivy, a tool for scanning Docker images for vulnerabilities
+      - name: Check for GC Secure Artifacts usage
+        id: check-jfrog
+        run: |
+          set -euo pipefail
+          dockerfile="${{ matrix.dockerfile }}"
 
-      - name: Set up Docker Build Environment
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
-        # Set up Docker Buildx, which allows building multi-platform Docker images
+          if grep -Eq '^[[:space:]]*FROM[[:space:]]+artifacts-artefacts\.devops\.cloud-nuage\.canada\.ca/' "$dockerfile"; then
+            echo "Detected JFrog base image reference"
+            echo "uses_jfrog=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No JFrog base image found"
+            echo "uses_jfrog=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Setup JFrog CLI (OIDC)
+      - name: Setup GC Secure Artifacts and JFrog CLI
+        if: ${{ steps.check-jfrog.outputs.uses_jfrog == 'true' }}
         id: setup-jfrog-cli
         uses: jfrog/setup-jfrog-cli@v4
         env:
@@ -96,50 +160,51 @@ jobs:
         with:
           oidc-provider-name: github-oidc
 
-      - name: Secure GC Artifacts login
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+      - name: GC Secure Artifacts Docker login
+        if: ${{ steps.check-jfrog.outputs.uses_jfrog == 'true' }}
+        uses: docker/login-action@v3
         with:
           registry: https://artifacts-artefacts.devops.cloud-nuage.canada.ca
           username: ${{ steps.setup-jfrog-cli.outputs.oidc-user }}
           password: ${{ steps.setup-jfrog-cli.outputs.oidc-token }}
 
-      - name: Build and Scan Docker Images
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate top-level folder (no spaces under managed-containers/)
         run: |
-          # Get the JSON array of Dockerfiles to build from the previous step
-          dockerfiles_json='${{ steps.generate_dockerfile_list.outputs.dockerfiles_to_build }}'
-          # Convert JSON array to a bash array
-          mapfile -t dockerfiles_list < <(echo "$dockerfiles_json" | jq -r '.[]')
+          set -euo pipefail
+          file="${{ matrix.dockerfile }}"
 
-          echo "Dockerfile files to process: ${dockerfiles_list[*]}"
+          # Reduce to the path segment starting at managed-containers/
+          rel_path="$(printf '%s\n' "$file" | sed -E 's#^.*(managed-containers/.*)$#\1#')"
+          # Extract the immediate folder name under managed-containers/
+          component="$(printf '%s\n' "$rel_path" | awk -F/ '{print $2}')"
 
-          # Iterate through each Dockerfile path
-          for dockerfile in "${dockerfiles_list[@]}"; do
-            # Extract the package name from the directory containing the Dockerfile and convert to lowercase
-            package_name=$(basename "$(dirname "$dockerfile")" | tr '[:upper:]' '[:lower:]')
+          if printf '%s' "$component" | grep -q '[[:space:]]'; then
+            echo "::error title=Invalid component folder name::The top-level folder under 'managed-containers' contains whitespace: '$component'. Rename it (use '-' or '_'). Spaces are allowed in subfolders. Offending path: $rel_path"
+            exit 1
+          fi
 
-            # Define the image name with the :latest tag
-            image_name="$package_name:latest"
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
 
-            echo "Building Docker image: $image_name from $dockerfile"
+      - name: Setup Trivy
+        uses: aquasecurity/setup-trivy@ff1b8b060f23b650436d419b5e13f67f5d4c3087 # v0.2.2
 
-            # Build the Docker image using Docker Buildx with --no-cache to ensure fresh layers
-            docker buildx build --load --no-cache -t "$image_name" -f "$dockerfile" "$(dirname "$dockerfile")"
+      - name: Build image
+        run: |
+          set -euo pipefail
+          echo "Building ${{ matrix.image }} from ${{ matrix.dockerfile }} (context: ${{ matrix.context }})"
+          docker buildx build \
+            --load \
+            --no-cache \
+            -t "${{ matrix.image }}" \
+            -f "${{ matrix.dockerfile }}" \
+            "${{ matrix.context }}"
 
-            echo "Scanning Docker image: $image_name with Trivy"
-            # Save the Docker image to a tar file for scanning
-            docker save "$image_name" -o "$image_name.tar"
-
-            # Perform a scan to determine if vulnerabilities exist
-            if trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input "$image_name.tar"; then
-
-              echo "No critical vulnerabilities found in image: $image_name"
-            else
-              echo "Detected vulnerabilities for $image_name."
-              exit 1
-            fi
-            
-            # Remove the tar file after scanning
-            rm "$image_name.tar"
-          done
+      - name: Scan (Trivy, CRITICAL only)
+        run: |
+          set -euo pipefail
+          img="${{ matrix.image }}"
+          echo "Saving and scanning image: $img"
+          docker save "$img" -o image.tar
+          trivy image --quiet --format table --exit-code 1 --severity CRITICAL --input image.tar
+          rm -f image.tar
