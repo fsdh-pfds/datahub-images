@@ -32,7 +32,7 @@ ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
 
 COPY --from=requirements /function-app/venv /function-app/venv
 
-# Copy the application code
+# Copy the application code.  
 WORKDIR /home/site/wwwroot
 COPY function_app.py /home/site/wwwroot/
 
