@@ -3,6 +3,7 @@ curl:amd64
 gpg:amd64
 lsb-release:all
 git:amd64
+git-lfs:amd64
 debsums:all
 liblttng-ust1t64:amd64
 libicu78:amd64
