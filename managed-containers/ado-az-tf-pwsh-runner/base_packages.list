@@ -9,3 +9,6 @@ libicu78:amd64
 wget:amd64
 unzip:amd64
 zip:amd64
+python3:amd64
+python3-pip:amd64
+python3-venv:amd64
