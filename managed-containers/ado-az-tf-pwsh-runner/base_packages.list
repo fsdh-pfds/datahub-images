@@ -3,9 +3,13 @@ curl:amd64
 gpg:amd64
 lsb-release:all
 git:amd64
+git-lfs:amd64
 debsums:all
 liblttng-ust1t64:amd64
 libicu78:amd64
 wget:amd64
 unzip:amd64
 zip:amd64
+python3:amd64
+python3-pip:amd64
+python3-venv:amd64

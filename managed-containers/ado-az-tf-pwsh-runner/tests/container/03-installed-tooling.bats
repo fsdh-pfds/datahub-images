@@ -56,6 +56,9 @@ setup() {
     for package_name in \
       azure-cli \
       powershell \
+      python3 \
+      python3-pip \
+      python3-venv \
       terraform
     do
       package_status="$(
@@ -74,5 +77,8 @@ setup() {
 	[ "${status}" -eq 0 ]
 	[[ "${output}" == *"azure-cli: install ok installed"* ]]
 	[[ "${output}" == *"powershell: install ok installed"* ]]
+	[[ "${output}" == *"python3: install ok installed"* ]]
+	[[ "${output}" == *"python3-pip: install ok installed"* ]]
+	[[ "${output}" == *"python3-venv: install ok installed"* ]]
 	[[ "${output}" == *"terraform: install ok installed"* ]]
 }
